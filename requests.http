@@ -1,0 +1,27 @@
+### Health
+GET http://localhost:8080/actuator/health
+
+### Create order event
+POST http://localhost:8080/api/orders
+Content-Type: application/json
+
+{
+  "customerId": "customer-101",
+  "itemSku": "SKU-KAFKA-BOOK",
+  "quantity": 1,
+  "amount": 799.00
+}
+
+### Change order status
+POST http://localhost:8080/api/orders/REPLACE_WITH_ORDER_ID/status
+Content-Type: application/json
+
+{
+  "status": "PAYMENT_CONFIRMED"
+}
+
+### View tracked consumed events
+GET http://localhost:8080/api/tracked-events
+
+### View order read model
+GET http://localhost:8080/api/order-projections

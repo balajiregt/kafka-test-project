@@ -1,0 +1,43 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: kafka-event-lab
+  datasource:
+    url: jdbc:h2:mem:kafkaeventlab;MODE=PostgreSQL;DATABASE_TO_UPPER=false
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: order-tracker-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.balaji.kafkaeventlab.*
+        spring.json.value.default.type: com.balaji.kafkaeventlab.event.OrderEvent
+
+app:
+  kafka:
+    order-events-topic: orders.events.v1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
