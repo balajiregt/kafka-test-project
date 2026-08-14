@@ -24,17 +24,17 @@ spring:
       properties:
         spring.json.add.type.headers: false
     consumer:
-      group-id: order-tracker-service
+      group-id: identity-platform-read-model
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: com.balaji.kafkaeventlab.*
-        spring.json.value.default.type: com.balaji.kafkaeventlab.event.OrderEvent
+        spring.json.value.default.type: com.balaji.kafkaeventlab.identity.event.IdentityEvent
 
 app:
   kafka:
-    order-events-topic: orders.events.v1
+    identity-events-topic: identity.events.v1
 
 management:
   endpoints:

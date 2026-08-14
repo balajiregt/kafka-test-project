@@ -1,36 +1,44 @@
-package com.balaji.kafkaeventlab.tracking;
+package com.balaji.kafkaeventlab.identity.tracking;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-public class TrackedEvent {
+@Table(name = "identity_tracked_events")
+public class IdentityTrackedEvent {
 
     @Id
     private UUID eventId;
 
     private String eventType;
-    private UUID orderId;
+    private String aggregateType;
+    private UUID aggregateId;
+    private UUID subjectUserId;
+    private String correlationId;
     private String topicName;
     private Integer partitionNumber;
     private Long offsetNumber;
     private Instant occurredAt;
     private Instant consumedAt;
 
-    @Column(length = 4000)
+    @Column(length = 6000)
     private String eventJson;
 
-    protected TrackedEvent() {
+    protected IdentityTrackedEvent() {
     }
 
-    public TrackedEvent(
+    public IdentityTrackedEvent(
             UUID eventId,
             String eventType,
-            UUID orderId,
+            String aggregateType,
+            UUID aggregateId,
+            UUID subjectUserId,
+            String correlationId,
             String topicName,
             Integer partitionNumber,
             Long offsetNumber,
@@ -40,7 +48,10 @@ public class TrackedEvent {
     ) {
         this.eventId = eventId;
         this.eventType = eventType;
-        this.orderId = orderId;
+        this.aggregateType = aggregateType;
+        this.aggregateId = aggregateId;
+        this.subjectUserId = subjectUserId;
+        this.correlationId = correlationId;
         this.topicName = topicName;
         this.partitionNumber = partitionNumber;
         this.offsetNumber = offsetNumber;
@@ -57,8 +68,20 @@ public class TrackedEvent {
         return eventType;
     }
 
-    public UUID getOrderId() {
-        return orderId;
+    public String getAggregateType() {
+        return aggregateType;
+    }
+
+    public UUID getAggregateId() {
+        return aggregateId;
+    }
+
+    public UUID getSubjectUserId() {
+        return subjectUserId;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
     }
 
     public String getTopicName() {

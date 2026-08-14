@@ -10,7 +10,7 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopicConfig {
 
     @Bean
-    NewTopic orderEventsTopic(@Value("${app.kafka.order-events-topic}") String topicName) {
+    NewTopic identityEventsTopic(@Value("${app.kafka.identity-events-topic}") String topicName) {
         return TopicBuilder.name(topicName)
                 .partitions(3)
                 .replicas(1)

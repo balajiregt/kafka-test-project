@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Kafka broker flow</title>
+  <desc id="desc">Animated flow showing an identity event moving from producer to Kafka broker topic partitions, then to a listener and read projection.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#3d5afe"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 14; }
+      .broker { fill: #eef2ff; stroke: #4338ca; stroke-width: 2; rx: 16; }
+      .partition { fill: #ffffff; stroke: #818cf8; stroke-width: 1.5; rx: 8; }
+      .projection { fill: #ecfdf5; stroke: #047857; stroke-width: 2; rx: 14; }
+      .label { font-family: Arial, sans-serif; fill: #0f172a; font-size: 18px; font-weight: 700; }
+      .small { font-family: Arial, sans-serif; fill: #334155; font-size: 13px; }
+      .tiny { font-family: Arial, sans-serif; fill: #475569; font-size: 12px; }
+      .arrow { stroke: #3d5afe; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+      .record { fill: #3d5afe; stroke: #1e1b4b; stroke-width: 1; }
+      .offset { fill: #fde68a; stroke: #b45309; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="960" height="360"/>
+
+  <rect class="box" x="40" y="110" width="170" height="110"/>
+  <text class="label" x="72" y="145">Producer</text>
+  <text class="small" x="70" y="173">IdentityEventPublisher</text>
+  <text class="tiny" x="70" y="196">key = aggregateId</text>
+
+  <rect class="broker" x="300" y="55" width="300" height="250"/>
+  <text class="label" x="390" y="88">Kafka Broker</text>
+  <text class="small" x="365" y="113">stores records in topic partitions</text>
+
+  <rect class="partition" x="330" y="135" width="240" height="42"/>
+  <rect class="partition" x="330" y="188" width="240" height="42"/>
+  <rect class="partition" x="330" y="241" width="240" height="42"/>
+  <text class="small" x="350" y="161">identity.events.v1 / partition 0</text>
+  <text class="small" x="350" y="214">identity.events.v1 / partition 1</text>
+  <text class="small" x="350" y="267">identity.events.v1 / partition 2</text>
+
+  <rect class="offset" x="526" y="145" width="26" height="18" rx="4"/>
+  <text class="tiny" x="532" y="159">42</text>
+  <rect class="offset" x="526" y="198" width="26" height="18" rx="4"/>
+  <text class="tiny" x="532" y="212">17</text>
+  <rect class="offset" x="526" y="251" width="26" height="18" rx="4"/>
+  <text class="tiny" x="532" y="265">9</text>
+
+  <rect class="box" x="690" y="85" width="210" height="90"/>
+  <text class="label" x="738" y="120">Listener</text>
+  <text class="small" x="728" y="148">IdentityEventConsumer</text>
+
+  <rect class="projection" x="690" y="225" width="210" height="80"/>
+  <text class="label" x="726" y="258">Projection</text>
+  <text class="small" x="720" y="284">UserAccessSummary</text>
+
+  <path class="arrow" d="M210 165 H300"/>
+  <path class="arrow" d="M600 160 H690"/>
+  <path class="arrow" d="M795 175 V225"/>
+
+  <circle class="record" r="10">
+    <animateMotion dur="4.5s" repeatCount="indefinite" path="M130 165 H300 M300 165 H440"/>
+    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.84;1" dur="4.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle class="record" r="10">
+    <animateMotion dur="4.5s" begin="1.5s" repeatCount="indefinite" path="M440 165 H690 M795 175 V225 M795 225 H795"/>
+    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.84;1" dur="4.5s" begin="1.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <text class="tiny" x="340" y="325">Broker assigns partition + offset, then consumers read from their assigned partitions.</text>
+</svg>

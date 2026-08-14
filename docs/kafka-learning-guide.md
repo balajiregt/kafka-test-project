@@ -1,123 +1,121 @@
 # Kafka Learning Guide
 
-## 1. Mental Model
+## Project Mapping
 
-Kafka is an event streaming platform.
+| Kafka concept | Project instance |
+| --- | --- |
+| Broker | local Kafka server from `docker-compose.yml` or Testcontainers |
+| Kafka admin | Spring Kafka `KafkaAdmin` plus `NewTopic` bean |
+| Producer | `IdentityEventPublisher` |
+| Topic | `identity.events.v1` |
+| Event key | aggregate id, such as user id or access grant id |
+| Event payload | `IdentityEvent` JSON |
+| Listener / consumer | `IdentityEventConsumer` with `@KafkaListener` |
+| Consumer group | `identity-platform-read-model` |
+| Tracking table | `IdentityTrackedEvent` |
+| Read model | `UserAccessSummaryProjection` |
 
-Think of it as a durable event log:
+## Broker
 
-- A producer writes events to a topic.
-- A topic is split into partitions.
-- Each event gets an offset inside a partition.
-- Consumers read events from partitions.
-- Consumer groups coordinate who reads what.
+![Kafka broker flow](assets/kafka-broker-flow.svg)
 
-In this project:
+A broker is the Kafka server that stores records and serves them to consumers.
 
-| Kafka Concept | Project Example |
-|---|---|
-| Producer | `OrderEventPublisher` |
-| Topic | `orders.events.v1` |
-| Event key | `orderId` |
-| Event payload | `OrderEvent` JSON |
-| Consumer | `OrderEventConsumer` |
-| Consumer group | `order-tracker-service` |
-| Offset | Stored in `TrackedEvent.offsetNumber` |
-| Read model | `OrderProjection` |
+The broker's job is infrastructure work:
 
-## 2. Why Use `orderId` As Kafka Key?
+- receive records from producers
+- store records in topic partitions
+- assign offsets
+- serve records to consumers
+- manage consumer group offset commits
 
-Kafka sends records with the same key to the same partition.
+The broker does not know identity business rules. It only knows records, topics, partitions, offsets, and consumer groups.
 
-Using `orderId` as the key helps preserve ordering for events of the same order:
+## Kafka Admin
 
-```text
-ORDER_CREATED(order-1)
-ORDER_STATUS_CHANGED(order-1)
-ORDER_STATUS_CHANGED(order-1)
+![Kafka admin versus Kafka listener](assets/kafka-admin-vs-listener.svg)
+
+Kafka admin is used to manage Kafka resources.
+
+In this app, `KafkaTopicConfig` declares:
+
+```java
+NewTopic identityEventsTopic(...)
 ```
 
-Those should be processed in order for the same order.
+Spring Kafka uses admin functionality at startup to create or validate the topic.
 
-## 3. Topic, Partition, Offset
+Kafka admin is not the same as a Kafka listener. Admin manages topics and metadata. A listener consumes records.
 
-Topic:
+## Kafka Listener
 
-```text
-orders.events.v1
+A Kafka listener is application code that runs when a record is consumed.
+
+In this app, `IdentityEventConsumer` is the listener:
+
+```java
+@KafkaListener(topics = "${app.kafka.identity-events-topic}", groupId = "${spring.kafka.consumer.group-id}")
 ```
 
-Partitions:
+The listener receives an `IdentityEvent`, tracks the event metadata, and updates read projections.
+
+## Why Use Aggregate Id As Kafka Key?
+
+Kafka preserves order within a partition. Using the aggregate id as the key keeps related lifecycle events for the same aggregate on the same partition.
+
+Examples:
 
 ```text
-0, 1, 2
+USER_REGISTERED(user-1)
+USER_STATUS_CHANGED(user-1)
 ```
 
-Offsets:
+For access grants:
 
 ```text
-partition 0: offset 0, 1, 2...
-partition 1: offset 0, 1, 2...
-partition 2: offset 0, 1, 2...
+APPLICATION_ACCESS_GRANTED(access-1)
+APPLICATION_ACCESS_REVOKED(access-1)
 ```
 
-Offsets are per partition, not global across the whole topic.
+## Event Shape
 
-## 4. Event Tracking
+`IdentityEvent` carries:
 
-Kafka stores events in its own log. Your application usually stores a business-friendly view separately.
+- `eventId`
+- `eventType`
+- `aggregateType`
+- `aggregateId`
+- `subjectUserId`
+- `correlationId`
+- `occurredAt`
+- `schemaVersion`
+- `data`
 
-This project stores consumed metadata in H2:
+That gives consumers enough metadata to trace, route, validate, and evolve events.
+
+## Domain Model To Domain Event Flow
+
+![Domain model to domain event flow](assets/domain-event-flow.svg)
+
+The domain model is the business model of the system: users, credentials, applications, access grants, and their allowed state changes.
+
+When a business command succeeds, the app emits a domain event.
+
+Example:
 
 ```text
-TrackedEvent
-eventId
-eventType
-orderId
-topicName
-partitionNumber
-offsetNumber
-occurredAt
-consumedAt
-eventJson
+GrantApplicationAccessCommand
+  -> IdentityCommandService validates UserProfile and IdentityApplication
+  -> ApplicationAccessGrant is saved
+  -> IdentityEvent APPLICATION_ACCESS_GRANTED is created
+  -> event is published to identity.events.v1
 ```
 
-This helps you learn:
+Important event metadata:
 
-- Did my consumer receive the event?
-- Which partition did it land in?
-- What offset did Kafka assign?
-- What did the actual payload look like?
-
-## 5. Read Model
-
-`OrderProjection` is a simple read model.
-
-When the consumer receives `ORDER_CREATED`, it creates an order projection.
-
-When it receives `ORDER_STATUS_CHANGED`, it updates the projection status.
-
-This is the basic idea behind event-driven read models.
-
-## 6. Things To Experiment With
-
-1. Create 5 orders and check which partitions they go to.
-2. Change one order status multiple times and observe offsets.
-3. Stop the Spring Boot app, create events with Kafka CLI, restart the app, and see if the consumer catches up.
-4. Change the consumer group id and observe that events are re-consumed from earliest.
-5. Change topic partitions from 3 to 1 and observe ordering behavior.
-
-## 7. Not Covered Yet
-
-This project avoids advanced complexity intentionally:
-
-- schema registry
-- Avro/Protobuf
-- exactly-once processing
-- retries and dead-letter topics
-- Kafka Streams
-- multi-broker clusters
-- authentication/security
-- production monitoring
-
-Once comfortable, those are good next steps.
+| Metadata | Why it exists |
+| --- | --- |
+| `eventType` | tells consumers exactly what happened |
+| `aggregateId` | identifies the changed business object and becomes the Kafka key |
+| `schemaVersion` | lets event contracts evolve safely |
+| `correlationId` | lets logs/events/actions be traced as one workflow |

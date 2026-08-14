@@ -1,117 +1,58 @@
 # Testing Guide
 
-## Automated Test
-
-Run:
+Run all tests:
 
 ```bash
 mvn test
 ```
 
-The test uses Spring Kafka's embedded Kafka broker.
+Kafka integration tests require Docker because they use Testcontainers Kafka.
 
-It verifies:
+## API Integration Test
 
-1. An `OrderEvent` is published.
-2. The Kafka listener consumes it.
-3. The event is saved in `TrackedEvent`.
-4. The order read model is saved in `OrderProjection`.
+`IdentityApiIntegrationTests` starts Spring Boot with MockMvc and JPA, but mocks `IdentityEventPublisher`.
 
-## Manual API Test
+Use this style for:
 
-Start infrastructure:
+- request validation
+- HTTP status codes
+- response JSON
+- service orchestration
+- database writes
+- API error mapping
 
-```bash
-docker compose up -d
-```
+## Kafka Integration Test
 
-Start app:
+`IdentityPlatformKafkaIntegrationTests` starts Spring Boot with a real Kafka broker from Testcontainers.
 
-```bash
-mvn spring-boot:run
-```
+Use this style for:
 
-Create event:
+- producer serialization
+- topic connection
+- event headers
+- event tracking
+- consumer processing
+- read-side projection updates
+- eventual consistency assertions
 
-```bash
-curl -X POST http://localhost:8080/api/orders \
-  -H "Content-Type: application/json" \
-  -d '{
-    "customerId": "customer-101",
-    "itemSku": "SKU-KAFKA-BOOK",
-    "quantity": 1,
-    "amount": 799.00
-  }'
-```
+## Manual Smoke Flow
 
-Check tracked events:
+1. Start Kafka:
 
-```bash
-curl http://localhost:8080/api/tracked-events
-```
+   ```bash
+   docker compose up -d
+   ```
 
-Check projection:
+2. Run the app:
 
-```bash
-curl http://localhost:8080/api/order-projections
-```
+   ```bash
+   mvn spring-boot:run
+   ```
 
-## Suggested Test Scenarios
+3. Use `requests.http` or curl commands from the README.
 
-### Scenario 1: Event Is Produced
+4. Open Kafka UI at:
 
-Create an order and check Kafka UI.
-
-Expected:
-
-- topic has one message
-- key is the generated `orderId`
-- value contains `eventType: ORDER_CREATED`
-
-### Scenario 2: Consumer Tracks Event
-
-Call:
-
-```bash
-curl http://localhost:8080/api/tracked-events
-```
-
-Expected:
-
-- event exists
-- topic name is `orders.events.v1`
-- partition and offset are populated
-
-### Scenario 3: Projection Updates
-
-Create order, copy `orderId`, then change status:
-
-```bash
-curl -X POST http://localhost:8080/api/orders/<orderId>/status \
-  -H "Content-Type: application/json" \
-  -d '{"status": "PAYMENT_CONFIRMED"}'
-```
-
-Expected:
-
-- Kafka UI shows a second event
-- `/api/order-projections` shows updated status
-
-### Scenario 4: Consumer Catch-up
-
-1. Stop Spring Boot app.
-2. Keep Kafka running.
-3. Start Spring Boot app again.
-
-Expected:
-
-- consumer resumes from committed offset
-- no duplicate processing for already committed records
-
-To force re-processing for learning, change:
-
-```yaml
-spring.kafka.consumer.group-id
-```
-
-to a new value in `application.yml`.
+   ```text
+   http://localhost:8085
+   ```

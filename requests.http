@@ -1,27 +1,77 @@
 ### Health
 GET http://localhost:8080/actuator/health
 
-### Create order event
-POST http://localhost:8080/api/orders
+### Register user
+POST http://localhost:8080/api/identity/users
 Content-Type: application/json
 
 {
-  "customerId": "customer-101",
-  "itemSku": "SKU-KAFKA-BOOK",
-  "quantity": 1,
-  "amount": 799.00
+  "email": "anika.rao@example.com",
+  "displayName": "Anika Rao",
+  "department": "Finance",
+  "jobTitle": "Controller"
 }
 
-### Change order status
-POST http://localhost:8080/api/orders/REPLACE_WITH_ORDER_ID/status
+### Activate user
+POST http://localhost:8080/api/identity/users/REPLACE_WITH_USER_ID/status
 Content-Type: application/json
 
 {
-  "status": "PAYMENT_CONFIRMED"
+  "status": "ACTIVE",
+  "reason": "HR onboarding completed"
 }
 
-### View tracked consumed events
-GET http://localhost:8080/api/tracked-events
+### Register credential reference
+POST http://localhost:8080/api/identity/credentials
+Content-Type: application/json
 
-### View order read model
-GET http://localhost:8080/api/order-projections
+{
+  "userId": "REPLACE_WITH_USER_ID",
+  "credentialType": "SSO_SUBJECT",
+  "credentialReference": "okta|00u12345",
+  "mfaEnabled": true
+}
+
+### Create application
+POST http://localhost:8080/api/identity/applications
+Content-Type: application/json
+
+{
+  "applicationCode": "ERP",
+  "displayName": "Enterprise Resource Planning",
+  "ownerTeam": "enterprise-platform",
+  "defaultRoles": ["VIEWER", "APPROVER"]
+}
+
+### Grant application access
+POST http://localhost:8080/api/identity/access-grants
+Content-Type: application/json
+
+{
+  "userId": "REPLACE_WITH_USER_ID",
+  "applicationId": "REPLACE_WITH_APPLICATION_ID",
+  "roleName": "APPROVER",
+  "grantedBy": "iam-admin"
+}
+
+### Revoke application access
+POST http://localhost:8080/api/identity/access-grants/revoke
+Content-Type: application/json
+
+{
+  "accessId": "REPLACE_WITH_ACCESS_ID",
+  "revokedBy": "iam-admin",
+  "reason": "Role no longer required"
+}
+
+### Query users
+GET http://localhost:8080/api/identity/users
+
+### Query applications
+GET http://localhost:8080/api/identity/applications
+
+### Query access summaries
+GET http://localhost:8080/api/identity/access-summaries
+
+### Query tracked consumed events
+GET http://localhost:8080/api/identity/tracked-events
