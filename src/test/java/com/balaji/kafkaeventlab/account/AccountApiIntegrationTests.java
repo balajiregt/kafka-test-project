@@ -1,0 +1,153 @@
+package com.balaji.kafkaeventlab.account;
+
+import com.balaji.kafkaeventlab.account.domain.CredentialType;
+import com.balaji.kafkaeventlab.account.domain.PasswordResetRequestRepository;
+import com.balaji.kafkaeventlab.account.domain.SignInAttemptRepository;
+import com.balaji.kafkaeventlab.account.domain.UserCredentialRepository;
+import com.balaji.kafkaeventlab.account.domain.UserProfileRepository;
+import com.balaji.kafkaeventlab.account.domain.UserStatus;
+import com.balaji.kafkaeventlab.account.event.AccountEvent;
+import com.balaji.kafkaeventlab.account.event.AccountEventPublisher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+
+import java.util.concurrent.CompletableFuture;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest(properties = {
+        "spring.kafka.admin.auto-create=false",
+        "spring.kafka.listener.auto-startup=false"
+})
+@AutoConfigureMockMvc
+class AccountApiIntegrationTests {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserProfileRepository userProfileRepository;
+
+    @Autowired
+    private UserCredentialRepository userCredentialRepository;
+
+    @Autowired
+    private SignInAttemptRepository signInAttemptRepository;
+
+    @Autowired
+    private PasswordResetRequestRepository passwordResetRequestRepository;
+
+    @MockitoBean
+    private AccountEventPublisher eventPublisher;
+
+    @BeforeEach
+    void setUp() {
+        passwordResetRequestRepository.deleteAll();
+        signInAttemptRepository.deleteAll();
+        userCredentialRepository.deleteAll();
+        userProfileRepository.deleteAll();
+        when(eventPublisher.publish(any(AccountEvent.class)))
+                .thenAnswer(invocation -> CompletableFuture.completedFuture(invocation.getArgument(0)));
+    }
+
+    @Test
+    void supportsCoreAccountProfileAndAuthenticationLifecycle() throws Exception {
+        performAsyncPost("/api/accounts/users", """
+                {
+                  "email": "mira.shah@example.com",
+                  "displayName": "Mira Shah",
+                  "department": "Security",
+                  "jobTitle": "Profile Support Analyst"
+                }
+                """)
+                .andExpect(jsonPath("$.eventType").value("USER_REGISTERED"))
+                .andExpect(jsonPath("$.data.email").value("mira.shah@example.com"));
+
+        var user = userProfileRepository.findByEmail("mira.shah@example.com").orElseThrow();
+        assertThat(user.getDepartment()).isEqualTo("Security");
+
+        performAsyncPost("/api/accounts/users/" + user.getUserId() + "/status", """
+                {
+                  "status": "ACTIVE",
+                  "reason": "HR onboarding completed"
+                }
+                """)
+                .andExpect(jsonPath("$.eventType").value("USER_STATUS_CHANGED"));
+
+        performAsyncPost("/api/accounts/credentials", """
+                {
+                  "userId": "%s",
+                  "credentialType": "PASSWORD_HASH",
+                  "credentialReference": "password-hash:v1:mira",
+                  "mfaEnabled": true
+                }
+                """.formatted(user.getUserId()))
+                .andExpect(jsonPath("$.eventType").value("CREDENTIAL_REGISTERED"));
+
+        performAsyncPost("/api/accounts/sign-ins", """
+                {
+                  "email": "mira.shah@example.com",
+                  "credentialReference": "password-hash:v1:mira"
+                }
+                """)
+                .andExpect(jsonPath("$.eventType").value("SIGN_IN_SUCCEEDED"));
+
+        performAsyncPost("/api/accounts/password-reset-requests", """
+                {
+                  "email": "mira.shah@example.com"
+                }
+                """)
+                .andExpect(jsonPath("$.eventType").value("PASSWORD_RESET_REQUESTED"));
+
+        var resetRequest = passwordResetRequestRepository.findByUserId(user.getUserId()).get(0);
+        performAsyncPost("/api/accounts/password-resets/complete", """
+                {
+                  "resetRequestId": "%s",
+                  "newCredentialReference": "password-hash:v2:mira",
+                  "mfaEnabled": true
+                }
+                """.formatted(resetRequest.getResetRequestId()))
+                .andExpect(jsonPath("$.eventType").value("PASSWORD_RESET_COMPLETED"));
+
+        assertThat(userProfileRepository.findById(user.getUserId()))
+                .isPresent()
+                .get()
+                .satisfies(profile -> assertThat(profile.getStatus()).isEqualTo(UserStatus.ACTIVE));
+        assertThat(userCredentialRepository.findByUserId(user.getUserId()))
+                .anySatisfy(credential -> {
+                    assertThat(credential.getCredentialType()).isEqualTo(CredentialType.PASSWORD_HASH);
+                    assertThat(credential.getCredentialReference()).isEqualTo("password-hash:v2:mira");
+                });
+        assertThat(signInAttemptRepository.findByUserId(user.getUserId()))
+                .hasSize(1)
+                .first()
+                .satisfies(attempt -> assertThat(attempt.getReason()).isEqualTo("Credential accepted"));
+    }
+
+    private ResultActions performAsyncPost(String url, String json) throws Exception {
+        MvcResult result = mockMvc.perform(post(url)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isAccepted())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        return mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isAccepted());
+    }
+}

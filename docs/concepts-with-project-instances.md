@@ -5,10 +5,10 @@
 Example:
 
 ```text
-POST /api/identity/users
+POST /api/accounts/users
 ```
 
-The controller validates the request and delegates to `IdentityCommandService`.
+The controller validates the request and delegates to `AccountCommandService`.
 
 ## Domain Model
 
@@ -16,17 +16,18 @@ The controller validates the request and delegates to `IdentityCommandService`.
 
 A domain model is the code representation of the business concepts, rules, and lifecycle of the system.
 
-In this project, the identity platform domain model includes:
+In this project, the digital account profile and authentication service domain model includes:
 
 - `UserProfile`
 - `UserCredential`
-- `IdentityApplication`
-- `ApplicationAccessGrant`
+- `SignInAttempt`
+- `PasswordResetRequest`
 - `UserStatus`
 - `CredentialStatus`
-- `AccessStatus`
+- `AuthenticationResult`
+- `PasswordResetStatus`
 
-These are not Kafka concepts. They are identity-platform concepts. Kafka is only the transport used to publish facts about changes in this model.
+These are not Kafka concepts. They are account concepts. Kafka is only the transport used to publish facts about changes in this model.
 
 Example:
 
@@ -44,10 +45,10 @@ Examples:
 
 - `UserProfile`
 - `UserCredential`
-- `IdentityApplication`
-- `ApplicationAccessGrant`
+- `SignInAttempt`
+- `PasswordResetRequest`
 
-These represent current operational records owned by the identity platform.
+These represent current operational records owned by the digital account profile and authentication service.
 
 ## Kafka Broker
 
@@ -70,20 +71,20 @@ The broker does this work:
 In this project:
 
 ```text
-IdentityEventPublisher
-  -> sends IdentityEvent to Kafka broker
-  -> broker stores it in identity.events.v1
-  -> IdentityEventConsumer reads it from the broker
+AccountEventPublisher
+  -> sends AccountEvent to Kafka broker
+  -> broker stores it in account.events.v1
+  -> AccountEventConsumer reads it from the broker
 ```
 
-The broker is not business logic. It does not know what a user, credential, or access grant means. It only stores and delivers records.
+The broker is not business logic. It does not know what a user, credential, sign-in attempt, or password reset means. It only stores and delivers records.
 
 ## Kafka Topic And Partition
 
 Topic:
 
 ```text
-identity.events.v1
+account.events.v1
 ```
 
 A topic is a named stream of records. Producers write to it; consumers read from it.
@@ -91,9 +92,9 @@ A topic is a named stream of records. Producers write to it; consumers read from
 Partition:
 
 ```text
-identity.events.v1 partition 0
-identity.events.v1 partition 1
-identity.events.v1 partition 2
+account.events.v1 partition 0
+account.events.v1 partition 1
+account.events.v1 partition 2
 ```
 
 A partition is an ordered log inside a topic. Ordering is guaranteed within one partition, not across the whole topic.
@@ -103,7 +104,7 @@ A partition is an ordered log inside a topic. Ordering is guaranteed within one 
 Example:
 
 ```text
-APPLICATION_ACCESS_GRANTED
+PASSWORD_RESET_REQUESTED
 ```
 
 The event says something meaningful happened. It is not just a copy of an API response.
@@ -113,29 +114,31 @@ A domain event is a past-tense business fact emitted by the domain model.
 Examples:
 
 - `USER_REGISTERED`
+- `USER_PROFILE_UPDATED`
 - `USER_STATUS_CHANGED`
 - `CREDENTIAL_REGISTERED`
-- `APPLICATION_CREATED`
-- `APPLICATION_ACCESS_GRANTED`
-- `APPLICATION_ACCESS_REVOKED`
+- `SIGN_IN_SUCCEEDED`
+- `SIGN_IN_FAILED`
+- `PASSWORD_RESET_REQUESTED`
+- `PASSWORD_RESET_COMPLETED`
 
 The event should be explicit enough that another service can understand what happened without knowing which API endpoint caused it.
 
-## Identity Event Metadata
+## Account Event Metadata
 
-Each `IdentityEvent` carries both business data and technical metadata.
+Each `AccountEvent` carries both business data and technical metadata.
 
 | Field | Meaning | Example |
 | --- | --- | --- |
 | `eventId` | Unique id for this event instance | `46d7f58f-...` |
-| `eventType` | Business fact that happened | `APPLICATION_ACCESS_GRANTED` |
-| `aggregateType` | Kind of business object changed | `ACCESS_GRANT` |
-| `aggregateId` | Id of the business object changed | access grant id |
+| `eventType` | Business fact that happened | `PASSWORD_RESET_REQUESTED` |
+| `aggregateType` | Kind of business object changed | `PASSWORD_RESET` |
+| `aggregateId` | Id of the business object changed | reset request id |
 | `subjectUserId` | User affected by the event | user id |
 | `correlationId` | Trace id connecting related work | request or workflow id |
 | `occurredAt` | Business time of the event | timestamp |
 | `schemaVersion` | Payload contract version | `1` |
-| `data` | Event-specific business payload | role/application/user details |
+| `data` | Event-specific business payload | profile, credential, sign-in, or reset details |
 
 ## Aggregate And Aggregate Id
 
@@ -147,19 +150,19 @@ In this project:
 | --- | --- |
 | user profile | `userId` |
 | credential | `credentialId` |
-| application | `applicationId` |
-| access grant | `accessId` |
+| sign-in attempt | `signInAttemptId` |
+| password reset | `resetRequestId` |
 
 The aggregate id is used as the Kafka record key. That keeps lifecycle events for the same aggregate on the same Kafka partition.
 
 Example:
 
 ```text
-APPLICATION_ACCESS_GRANTED(access-1)
-APPLICATION_ACCESS_REVOKED(access-1)
+PASSWORD_RESET_REQUESTED(reset-1)
+PASSWORD_RESET_COMPLETED(reset-1)
 ```
 
-Both records use `access-1` as key, so Kafka routes them to the same partition and preserves their order.
+Both records use `reset-1` as key, so Kafka routes them to the same partition and preserves their order.
 
 ## Schema Version
 
@@ -193,10 +196,10 @@ When a production issue happens, correlation id helps you ask: "Which API call, 
 ## Kafka Topic
 
 ```text
-identity.events.v1
+account.events.v1
 ```
 
-This topic carries identity lifecycle events. The version suffix lets consumers migrate safely when event contracts evolve.
+This topic carries account lifecycle events. The version suffix lets consumers migrate safely when event contracts evolve.
 
 ## Kafka Admin
 
@@ -210,10 +213,10 @@ In this project:
 
 ```java
 @Bean
-NewTopic identityEventsTopic(...)
+NewTopic accountEventsTopic(...)
 ```
 
-That bean tells Spring Kafka to ask the broker to create or validate the `identity.events.v1` topic when the application starts.
+That bean tells Spring Kafka to ask the broker to create or validate the `account.events.v1` topic when the application starts.
 
 Kafka admin is used for infrastructure-level work:
 
@@ -232,15 +235,15 @@ A Kafka listener is application code that subscribes to a topic and runs when re
 In this project:
 
 ```java
-@KafkaListener(topics = "${app.kafka.identity-events-topic}", groupId = "${spring.kafka.consumer.group-id}")
+@KafkaListener(topics = "${app.kafka.account-events-topic}", groupId = "${spring.kafka.consumer.group-id}")
 ```
 
-This annotation makes `IdentityEventConsumer.consume(...)` a Kafka listener.
+This annotation makes `AccountEventConsumer.consume(...)` a Kafka listener.
 
 Its work:
 
 - poll records from the broker
-- deserialize the record value into `IdentityEvent`
+- deserialize the record value into `AccountEvent`
 - receive metadata such as topic, partition, and offset
 - run business-side consumption logic
 - commit offsets according to the configured listener container behavior
@@ -248,22 +251,21 @@ Its work:
 In our app, the listener:
 
 ```text
-reads IdentityEvent
-  -> saves IdentityTrackedEvent
-  -> updates UserAccessSummaryProjection when relevant
+reads AccountEvent
+  -> saves AccountTrackedEvent
 ```
 
 ## Consumer Group
 
 ```text
-identity-platform-read-model
+account-event-tracker
 ```
 
 Consumers in the same group divide partitions among themselves.
 
 ## Event Tracking
 
-`IdentityTrackedEvent` stores:
+`AccountTrackedEvent` stores:
 
 - event id
 - event type
@@ -277,36 +279,30 @@ Consumers in the same group divide partitions among themselves.
 
 That gives you auditability and makes test assertions precise.
 
-## Projection
-
-`UserAccessSummaryProjection` is a read-optimized view of user-to-application access.
-
-It is updated asynchronously from events, so tests should wait for eventual consistency instead of assuming immediate visibility.
-
 ## Full Business Operation To Event Flow
 
 ![Domain event flow](assets/domain-event-flow.svg)
 
-Example: grant application access.
+Example: complete a password reset.
 
 ```text
-POST /api/identity/access-grants
-  -> IdentityCommandController
-  -> IdentityCommandService
-  -> validates user and application exist
-  -> saves ApplicationAccessGrant
-  -> creates IdentityEvent with:
-       eventType = APPLICATION_ACCESS_GRANTED
-       aggregateType = ACCESS_GRANT
-       aggregateId = accessId
+POST /api/accounts/password-resets/complete
+  -> AccountCommandController
+  -> AccountCommandService
+  -> validates password reset request exists and is REQUESTED
+  -> saves a new PASSWORD_HASH credential reference
+  -> marks PasswordResetRequest as COMPLETED
+  -> creates AccountEvent with:
+       eventType = PASSWORD_RESET_COMPLETED
+       aggregateType = PASSWORD_RESET
+       aggregateId = resetRequestId
        subjectUserId = userId
        schemaVersion = 1
        correlationId = generated trace id
-  -> IdentityEventPublisher sends event to Kafka
-  -> Kafka broker stores event in identity.events.v1
-  -> IdentityEventConsumer receives event
-  -> IdentityTrackedEvent stores audit metadata
-  -> UserAccessSummaryProjection is updated for query APIs
+  -> AccountEventPublisher sends event to Kafka
+  -> Kafka broker stores event in account.events.v1
+  -> AccountEventConsumer receives event
+  -> AccountTrackedEvent stores audit metadata
 ```
 
 This is the key separation:
@@ -316,4 +312,4 @@ This is the key separation:
 - domain event announces what happened
 - Kafka broker stores and delivers the event
 - listener consumes the event
-- projection supports read/query use cases
+- tracking supports audit and test verification use cases

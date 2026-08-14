@@ -10,7 +10,7 @@ Kafka integration tests require Docker because they use Testcontainers Kafka.
 
 ## API Integration Test
 
-`IdentityApiIntegrationTests` starts Spring Boot with MockMvc and JPA, but mocks `IdentityEventPublisher`.
+`AccountApiIntegrationTests` starts Spring Boot with MockMvc and JPA, but mocks `AccountEventPublisher`.
 
 Use this style for:
 
@@ -20,10 +20,11 @@ Use this style for:
 - service orchestration
 - database writes
 - API error mapping
+- profile/auth lifecycle behavior
 
 ## Kafka Integration Test
 
-`IdentityPlatformKafkaIntegrationTests` starts Spring Boot with a real Kafka broker from Testcontainers.
+`AccountKafkaIntegrationTests` starts Spring Boot with a real Kafka broker from Testcontainers.
 
 Use this style for:
 
@@ -32,7 +33,7 @@ Use this style for:
 - event headers
 - event tracking
 - consumer processing
-- read-side projection updates
+- event-driven read-side projection updates
 - eventual consistency assertions
 
 ## Manual Smoke Flow

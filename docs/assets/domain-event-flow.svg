@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1040" height="420" viewBox="0 0 1040 420" role="img" aria-labelledby="title desc">
-  <title id="title">Domain model to domain event flow</title>
-  <desc id="desc">Animated identity-platform flow from API command through domain model, domain event metadata, Kafka, listener, and read projection.</desc>
+  <title id="title">Account profile and auth event flow</title>
+  <desc id="desc">Animated account profile and authentication flow from API command through user profile and credential domain model, domain event metadata, Kafka, listener, and event tracking.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
       <path d="M0,0 L0,6 L9,3 z" fill="#4f46e5"/>
@@ -25,23 +25,23 @@
 
   <rect class="box" x="30" y="125" width="155" height="110"/>
   <text class="label" x="62" y="160">Command</text>
-  <text class="small" x="52" y="188">Grant access</text>
+  <text class="small" x="52" y="188">Reset password</text>
   <text class="tiny" x="52" y="210">HTTP request</text>
 
   <rect class="domain" x="250" y="105" width="190" height="150"/>
   <text class="label" x="290" y="140">Domain Model</text>
   <text class="small" x="282" y="170">UserProfile</text>
-  <text class="small" x="282" y="194">IdentityApplication</text>
-  <text class="small" x="282" y="218">ApplicationAccessGrant</text>
-  <text class="tiny" x="282" y="240">validates + saves state</text>
+  <text class="small" x="282" y="194">UserCredential</text>
+  <text class="small" x="282" y="218">PasswordResetRequest</text>
+  <text class="tiny" x="282" y="240">validates + updates state</text>
 
   <rect class="event" x="500" y="62" width="230" height="245"/>
   <text class="label" x="552" y="96">Domain Event</text>
-  <text class="small" x="532" y="123">APPLICATION_ACCESS_GRANTED</text>
+  <text class="small" x="532" y="123">PASSWORD_RESET_COMPLETED</text>
   <rect class="meta" x="525" y="145" width="180" height="24"/>
   <text class="tiny" x="540" y="162">eventType</text>
   <rect class="meta" x="525" y="176" width="180" height="24"/>
-  <text class="tiny" x="540" y="193">aggregateId = accessId</text>
+  <text class="tiny" x="540" y="193">aggregateId = resetRequestId</text>
   <rect class="meta" x="525" y="207" width="180" height="24"/>
   <text class="tiny" x="540" y="224">schemaVersion = 1</text>
   <rect class="meta" x="525" y="238" width="180" height="24"/>
@@ -50,16 +50,16 @@
 
   <rect class="kafka" x="790" y="70" width="190" height="100"/>
   <text class="label" x="852" y="105">Kafka</text>
-  <text class="small" x="825" y="132">identity.events.v1</text>
+  <text class="small" x="825" y="132">account.events.v1</text>
   <text class="tiny" x="825" y="152">broker stores event</text>
 
   <rect class="box" x="790" y="215" width="190" height="80"/>
   <text class="label" x="846" y="248">Listener</text>
-  <text class="small" x="826" y="274">IdentityEventConsumer</text>
+  <text class="small" x="826" y="274">AccountEventConsumer</text>
 
   <rect class="read" x="540" y="340" width="250" height="58"/>
-  <text class="label" x="575" y="365">Read Projection</text>
-  <text class="small" x="575" y="389">UserAccessSummaryProjection</text>
+  <text class="label" x="575" y="365">Event Tracking</text>
+  <text class="small" x="575" y="389">AccountTrackedEvent</text>
 
   <path class="arrow" d="M185 180 H250"/>
   <path class="arrow" d="M440 180 H500"/>
@@ -76,5 +76,5 @@
     <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.84;1" dur="6s" begin="2s" repeatCount="indefinite"/>
   </circle>
 
-  <text class="tiny" x="292" y="32">The domain model owns business rules. The domain event announces the fact. Kafka transports it. The listener updates read models.</text>
+  <text class="tiny" x="292" y="32">The domain model owns profile/auth rules. The domain event announces the fact. Kafka transports it. The listener tracks it.</text>
 </svg>

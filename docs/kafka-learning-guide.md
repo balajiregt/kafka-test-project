@@ -6,14 +6,13 @@
 | --- | --- |
 | Broker | local Kafka server from `docker-compose.yml` or Testcontainers |
 | Kafka admin | Spring Kafka `KafkaAdmin` plus `NewTopic` bean |
-| Producer | `IdentityEventPublisher` |
-| Topic | `identity.events.v1` |
-| Event key | aggregate id, such as user id or access grant id |
-| Event payload | `IdentityEvent` JSON |
-| Listener / consumer | `IdentityEventConsumer` with `@KafkaListener` |
-| Consumer group | `identity-platform-read-model` |
-| Tracking table | `IdentityTrackedEvent` |
-| Read model | `UserAccessSummaryProjection` |
+| Producer | `AccountEventPublisher` |
+| Topic | `account.events.v1` |
+| Event key | aggregate id, such as user id, credential id, sign-in attempt id, or reset request id |
+| Event payload | `AccountEvent` JSON |
+| Listener / consumer | `AccountEventConsumer` with `@KafkaListener` |
+| Consumer group | `account-event-tracker` |
+| Tracking table | `AccountTrackedEvent` audit log |
 
 ## Broker
 
@@ -29,7 +28,7 @@ The broker's job is infrastructure work:
 - serve records to consumers
 - manage consumer group offset commits
 
-The broker does not know identity business rules. It only knows records, topics, partitions, offsets, and consumer groups.
+The broker does not know account/profile/authentication business rules. It only knows records, topics, partitions, offsets, and consumer groups.
 
 ## Kafka Admin
 
@@ -40,7 +39,7 @@ Kafka admin is used to manage Kafka resources.
 In this app, `KafkaTopicConfig` declares:
 
 ```java
-NewTopic identityEventsTopic(...)
+NewTopic accountEventsTopic(...)
 ```
 
 Spring Kafka uses admin functionality at startup to create or validate the topic.
@@ -51,13 +50,13 @@ Kafka admin is not the same as a Kafka listener. Admin manages topics and metada
 
 A Kafka listener is application code that runs when a record is consumed.
 
-In this app, `IdentityEventConsumer` is the listener:
+In this app, `AccountEventConsumer` is the listener:
 
 ```java
-@KafkaListener(topics = "${app.kafka.identity-events-topic}", groupId = "${spring.kafka.consumer.group-id}")
+@KafkaListener(topics = "${app.kafka.account-events-topic}", groupId = "${spring.kafka.consumer.group-id}")
 ```
 
-The listener receives an `IdentityEvent`, tracks the event metadata, and updates read projections.
+The listener receives an `AccountEvent` and stores consumed-event metadata in `AccountTrackedEvent`.
 
 ## Why Use Aggregate Id As Kafka Key?
 
@@ -70,16 +69,16 @@ USER_REGISTERED(user-1)
 USER_STATUS_CHANGED(user-1)
 ```
 
-For access grants:
+For password resets:
 
 ```text
-APPLICATION_ACCESS_GRANTED(access-1)
-APPLICATION_ACCESS_REVOKED(access-1)
+PASSWORD_RESET_REQUESTED(reset-1)
+PASSWORD_RESET_COMPLETED(reset-1)
 ```
 
 ## Event Shape
 
-`IdentityEvent` carries:
+`AccountEvent` carries:
 
 - `eventId`
 - `eventType`
@@ -97,18 +96,19 @@ That gives consumers enough metadata to trace, route, validate, and evolve event
 
 ![Domain model to domain event flow](assets/domain-event-flow.svg)
 
-The domain model is the business model of the system: users, credentials, applications, access grants, and their allowed state changes.
+The domain model is the business model of the system: users, profiles, credentials, sign-in attempts, password reset requests, and their allowed state changes.
 
 When a business command succeeds, the app emits a domain event.
 
 Example:
 
 ```text
-GrantApplicationAccessCommand
-  -> IdentityCommandService validates UserProfile and IdentityApplication
-  -> ApplicationAccessGrant is saved
-  -> IdentityEvent APPLICATION_ACCESS_GRANTED is created
-  -> event is published to identity.events.v1
+CompletePasswordResetCommand
+  -> AccountCommandService validates PasswordResetRequest
+  -> UserCredential is saved
+  -> PasswordResetRequest is completed
+  -> AccountEvent PASSWORD_RESET_COMPLETED is created
+  -> event is published to account.events.v1
 ```
 
 Important event metadata:

@@ -37,7 +37,7 @@
   <rect class="broker" x="380" y="75" width="260" height="190"/>
   <text class="label" x="452" y="110">Broker</text>
   <rect class="topic" x="415" y="145" width="190" height="38"/>
-  <text class="small" x="438" y="170">identity.events.v1</text>
+  <text class="small" x="438" y="170">account.events.v1</text>
   <rect class="topic" x="415" y="197" width="190" height="38"/>
   <text class="small" x="454" y="222">partitions</text>
 

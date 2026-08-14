@@ -2,7 +2,7 @@
 GET http://localhost:8080/actuator/health
 
 ### Register user
-POST http://localhost:8080/api/identity/users
+POST http://localhost:8080/api/accounts/users
 Content-Type: application/json
 
 {
@@ -13,7 +13,7 @@ Content-Type: application/json
 }
 
 ### Activate user
-POST http://localhost:8080/api/identity/users/REPLACE_WITH_USER_ID/status
+POST http://localhost:8080/api/accounts/users/REPLACE_WITH_USER_ID/status
 Content-Type: application/json
 
 {
@@ -21,57 +21,65 @@ Content-Type: application/json
   "reason": "HR onboarding completed"
 }
 
-### Register credential reference
-POST http://localhost:8080/api/identity/credentials
+### Update user profile
+POST http://localhost:8080/api/accounts/users/REPLACE_WITH_USER_ID/profile
+Content-Type: application/json
+
+{
+  "displayName": "Anika Rao",
+  "department": "Finance Operations",
+  "jobTitle": "Senior Controller"
+}
+
+### Register credential reference for sign-in
+POST http://localhost:8080/api/accounts/credentials
 Content-Type: application/json
 
 {
   "userId": "REPLACE_WITH_USER_ID",
-  "credentialType": "SSO_SUBJECT",
-  "credentialReference": "okta|00u12345",
+  "credentialType": "PASSWORD_HASH",
+  "credentialReference": "password-hash:v1:anika",
   "mfaEnabled": true
 }
 
-### Create application
-POST http://localhost:8080/api/identity/applications
+### Sign in
+POST http://localhost:8080/api/accounts/sign-ins
 Content-Type: application/json
 
 {
-  "applicationCode": "ERP",
-  "displayName": "Enterprise Resource Planning",
-  "ownerTeam": "enterprise-platform",
-  "defaultRoles": ["VIEWER", "APPROVER"]
+  "email": "anika.rao@example.com",
+  "credentialReference": "password-hash:v1:anika"
 }
 
-### Grant application access
-POST http://localhost:8080/api/identity/access-grants
+### Request password reset
+POST http://localhost:8080/api/accounts/password-reset-requests
 Content-Type: application/json
 
 {
-  "userId": "REPLACE_WITH_USER_ID",
-  "applicationId": "REPLACE_WITH_APPLICATION_ID",
-  "roleName": "APPROVER",
-  "grantedBy": "iam-admin"
+  "email": "anika.rao@example.com"
 }
 
-### Revoke application access
-POST http://localhost:8080/api/identity/access-grants/revoke
+### Complete password reset
+POST http://localhost:8080/api/accounts/password-resets/complete
 Content-Type: application/json
 
 {
-  "accessId": "REPLACE_WITH_ACCESS_ID",
-  "revokedBy": "iam-admin",
-  "reason": "Role no longer required"
+  "resetRequestId": "REPLACE_WITH_RESET_REQUEST_ID",
+  "newCredentialReference": "password-hash:v2:anika",
+  "mfaEnabled": true
 }
 
 ### Query users
-GET http://localhost:8080/api/identity/users
+GET http://localhost:8080/api/accounts/users
 
-### Query applications
-GET http://localhost:8080/api/identity/applications
+### Query user credentials
+GET http://localhost:8080/api/accounts/users/REPLACE_WITH_USER_ID/credentials
 
-### Query access summaries
-GET http://localhost:8080/api/identity/access-summaries
+### Query user sign-in attempts
+GET http://localhost:8080/api/accounts/users/REPLACE_WITH_USER_ID/sign-in-attempts
+
+### Query user password reset requests
+GET http://localhost:8080/api/accounts/users/REPLACE_WITH_USER_ID/password-reset-requests
 
 ### Query tracked consumed events
-GET http://localhost:8080/api/identity/tracked-events
+GET http://localhost:8080/api/accounts/tracked-events

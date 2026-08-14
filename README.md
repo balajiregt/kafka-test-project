@@ -1,17 +1,16 @@
-# Identity Event Lab
+# Account Profile and Authentication Event Lab
 
-An enterprise-shaped Spring Boot + Kafka sample for identity-platform workflows.
+An enterprise-shaped Spring Boot + Kafka sample for account profile and authentication workflows.
 
-The app models a small identity platform:
+The app models a small account profile and authentication service:
 
-![Identity domain event flow](docs/assets/domain-event-flow.svg)
+![Account event flow](docs/assets/domain-event-flow.svg)
 
-1. REST command APIs manage user profiles, credentials, applications, and access grants.
+1. REST command APIs manage user profiles, credentials, sign-in attempts, password reset requests, and user status.
 2. Each command persists the operational record in H2.
-3. The command emits an `IdentityEvent` to Kafka topic `identity.events.v1`.
+3. The command emits an `AccountEvent` to Kafka topic `account.events.v1`.
 4. A Spring Kafka consumer tracks consumed events with topic, partition, offset, correlation id, and payload JSON.
-5. The consumer maintains a query-friendly user access summary projection.
-6. Tests separate API integration concerns from Kafka/event-flow concerns.
+5. Tests separate API integration concerns from Kafka/event-flow concerns.
 
 ## Tech Stack
 
@@ -41,7 +40,7 @@ mvn spring-boot:run
 Register a user:
 
 ```bash
-curl -X POST http://localhost:8080/api/identity/users \
+curl -X POST http://localhost:8080/api/accounts/users \
   -H "Content-Type: application/json" \
   -d '{
     "email": "anika.rao@example.com",
@@ -51,39 +50,57 @@ curl -X POST http://localhost:8080/api/identity/users \
   }'
 ```
 
-Create an application:
+Activate the user:
 
 ```bash
-curl -X POST http://localhost:8080/api/identity/applications \
+curl -X POST http://localhost:8080/api/accounts/users/<userId>/status \
   -H "Content-Type: application/json" \
   -d '{
-    "applicationCode": "ERP",
-    "displayName": "Enterprise Resource Planning",
-    "ownerTeam": "enterprise-platform",
-    "defaultRoles": ["VIEWER", "APPROVER"]
+    "status": "ACTIVE",
+    "reason": "HR onboarding completed"
   }'
 ```
 
-Grant application access:
+Register a credential reference:
 
 ```bash
-curl -X POST http://localhost:8080/api/identity/access-grants \
+curl -X POST http://localhost:8080/api/accounts/credentials \
   -H "Content-Type: application/json" \
   -d '{
-    "userId": "REPLACE_WITH_USER_ID",
-    "applicationId": "REPLACE_WITH_APPLICATION_ID",
-    "roleName": "APPROVER",
-    "grantedBy": "iam-admin"
+    "userId": "<userId>",
+    "credentialType": "PASSWORD_HASH",
+    "credentialReference": "password-hash:v1:anika",
+    "mfaEnabled": true
   }'
+```
+
+Sign in:
+
+```bash
+curl -X POST http://localhost:8080/api/accounts/sign-ins \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "anika.rao@example.com",
+    "credentialReference": "password-hash:v1:anika"
+  }'
+```
+
+Request password reset:
+
+```bash
+curl -X POST http://localhost:8080/api/accounts/password-reset-requests \
+  -H "Content-Type: application/json" \
+  -d '{"email": "anika.rao@example.com"}'
 ```
 
 Inspect read-side data:
 
 ```bash
-curl http://localhost:8080/api/identity/users
-curl http://localhost:8080/api/identity/applications
-curl http://localhost:8080/api/identity/access-summaries
-curl http://localhost:8080/api/identity/tracked-events
+curl http://localhost:8080/api/accounts/users
+curl http://localhost:8080/api/accounts/users/<userId>/credentials
+curl http://localhost:8080/api/accounts/users/<userId>/sign-in-attempts
+curl http://localhost:8080/api/accounts/users/<userId>/password-reset-requests
+curl http://localhost:8080/api/accounts/tracked-events
 ```
 
 Kafka UI:
@@ -110,18 +127,19 @@ jdbc:h2:mem:kafkaeventlab
 src/main/java/com/balaji/kafkaeventlab
 ├── config
 │   └── KafkaTopicConfig
-└── identity
+└── account
     ├── api          command/query controllers and API errors
     ├── application  command DTOs and use-case service
-    ├── domain       durable identity records and repositories
-    ├── event        IdentityEvent and Kafka publisher
-    ├── projection   read-side user access summary
+    ├── domain       durable account/profile/auth records and repositories
+    ├── event        AccountEvent and Kafka publisher
     └── tracking     Kafka consumer and consumed-event audit log
 ```
 
 ## Test Layout
 
-- `IdentityApiIntegrationTests`: API + validation + service + JPA. Kafka publisher is mocked because broker behavior is not the point of this level.
-- `IdentityPlatformKafkaIntegrationTests`: Spring Boot + Testcontainers Kafka + real producer/consumer + read-side projection assertions.
+- `AccountApiIntegrationTests`: API + validation + service + JPA. Kafka publisher is mocked because broker behavior is not the point of this level.
+- `AccountKafkaIntegrationTests`: Spring Boot + Testcontainers Kafka + real producer/consumer + consumed-event tracking assertions.
 
-See [docs/identity-platform-testing-strategy.md](docs/identity-platform-testing-strategy.md).
+See [docs/account-testing-strategy.md](docs/account-testing-strategy.md).
+
+For a blog-style write-up, see [docs/medium-account-kafka-testing.md](docs/medium-account-kafka-testing.md).
