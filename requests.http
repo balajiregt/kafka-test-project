@@ -83,3 +83,15 @@ GET http://localhost:8080/api/accounts/users/REPLACE_WITH_USER_ID/password-reset
 
 ### Query tracked consumed events
 GET http://localhost:8080/api/accounts/tracked-events
+
+### Account assurance journey graph for a user
+GET http://localhost:8080/api/assurance/subjects/REPLACE_WITH_USER_ID/journey
+
+### Account assurance advisor findings for a user
+GET http://localhost:8080/api/assurance/subjects/REPLACE_WITH_USER_ID/findings
+
+### Testing recommendations by layer
+GET http://localhost:8080/api/assurance/testing-recommendations
+
+### Account assurance report UI
+GET http://localhost:8080/assurance-report.html?subjectId=REPLACE_WITH_USER_ID

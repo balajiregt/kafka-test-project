@@ -8,8 +8,8 @@ import com.balaji.kafkaeventlab.account.domain.UserCredential;
 import com.balaji.kafkaeventlab.account.domain.UserCredentialRepository;
 import com.balaji.kafkaeventlab.account.domain.UserProfile;
 import com.balaji.kafkaeventlab.account.domain.UserProfileRepository;
-import com.balaji.kafkaeventlab.account.tracking.AccountTrackedEvent;
-import com.balaji.kafkaeventlab.account.tracking.AccountTrackedEventRepository;
+import com.balaji.kafkaeventlab.assurance.EventEvidence;
+import com.balaji.kafkaeventlab.assurance.EventEvidenceRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,20 +26,20 @@ public class AccountQueryController {
     private final UserCredentialRepository userCredentialRepository;
     private final SignInAttemptRepository signInAttemptRepository;
     private final PasswordResetRequestRepository passwordResetRequestRepository;
-    private final AccountTrackedEventRepository trackedEventRepository;
+    private final EventEvidenceRepository eventEvidenceRepository;
 
     public AccountQueryController(
             UserProfileRepository userProfileRepository,
             UserCredentialRepository userCredentialRepository,
             SignInAttemptRepository signInAttemptRepository,
             PasswordResetRequestRepository passwordResetRequestRepository,
-            AccountTrackedEventRepository trackedEventRepository
+            EventEvidenceRepository eventEvidenceRepository
     ) {
         this.userProfileRepository = userProfileRepository;
         this.userCredentialRepository = userCredentialRepository;
         this.signInAttemptRepository = signInAttemptRepository;
         this.passwordResetRequestRepository = passwordResetRequestRepository;
-        this.trackedEventRepository = trackedEventRepository;
+        this.eventEvidenceRepository = eventEvidenceRepository;
     }
 
     @GetMapping("/users")
@@ -63,12 +63,12 @@ public class AccountQueryController {
     }
 
     @GetMapping("/tracked-events")
-    public List<AccountTrackedEvent> trackedEvents() {
-        return trackedEventRepository.findAll();
+    public List<EventEvidence> trackedEvents() {
+        return eventEvidenceRepository.findAll();
     }
 
     @GetMapping("/users/{userId}/tracked-events")
-    public List<AccountTrackedEvent> trackedEventsForUser(@PathVariable UUID userId) {
-        return trackedEventRepository.findBySubjectUserId(userId);
+    public List<EventEvidence> trackedEventsForUser(@PathVariable UUID userId) {
+        return eventEvidenceRepository.findBySubjectId(userId);
     }
 }

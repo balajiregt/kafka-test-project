@@ -42,7 +42,7 @@ account.events.v1
 The Kafka listener consumes the event and stores an audit-friendly tracking record:
 
 ```text
-AccountTrackedEvent
+EventEvidence
   eventId
   eventType
   aggregateType
@@ -56,6 +56,46 @@ AccountTrackedEvent
 ```
 
 That tracking record makes asynchronous behavior observable without pretending Kafka is a synchronous API.
+
+## The Unique Layer: Event Intelligence
+
+The project goes one step beyond "assert that Kafka received a message."
+
+It builds an Event Assurance Graph from consumed events:
+
+```text
+User
+  <- AFFECTS_SUBJECT - Event
+  <- AUTHENTICATES_WITH - Sign-in attempt
+  <- RESETS_CREDENTIAL - Password reset request
+```
+
+The graph is computed from the normal tracking table. There is no Neo4j dependency in the default flow.
+
+On top of that graph, a deterministic advisor evaluates questions like:
+
+- Was the user registered before activation?
+- Was a credential registered before successful sign-in?
+- Was password reset requested before it was completed?
+- Do consumed events contain required metadata such as aggregate id, correlation id, schema version, and offset?
+- Should this behavior be tested at API, Kafka, contract/schema, or UI/e2e level?
+
+That is the useful version of "agentic" for this project. The advisor reasons over evidence and gives testing guidance, but it does not require a live LLM call. This keeps CI stable and makes the feature practical rather than decorative.
+
+Example endpoints:
+
+```text
+GET /api/assurance/subjects/{subjectId}/journey
+GET /api/assurance/subjects/{subjectId}/findings
+GET /api/assurance/testing-recommendations
+GET /assurance-report.html?subjectId={subjectId}
+```
+
+The JSON endpoints are useful for automated tests. The report page is useful for humans: summary cards, advisor bars, event timeline, graph edges, and testing recommendation panels all come from the same evidence.
+
+The key idea is:
+
+> Kafka validation is not just message assertion; it is journey assurance.
 
 ## The Core Design
 
@@ -203,6 +243,8 @@ Test examples:
 - listener consumes from the configured topic
 - consumer stores topic, partition, and offset
 - asynchronous assertions wait with Awaitility
+- the assurance graph can see events that passed through the real producer and listener
+- the advisor returns passing lifecycle and metadata findings for the happy path
 
 This is the right place for Kafka correctness.
 
@@ -233,6 +275,8 @@ Do not use E2E specs to exhaustively verify:
 - every producer/consumer scenario
 
 Those belong in lower-level Kafka integration tests with Testcontainers.
+
+The assurance layer makes this separation easier to explain. UI tests can stay focused on the visible journey. Kafka tests can prove event transport and listener behavior. The advisor can then summarize the event journey and point each finding to the correct testing layer.
 
 ## How To Scale The Test Suite
 

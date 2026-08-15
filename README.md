@@ -1,8 +1,8 @@
 # Account Profile and Authentication Event Lab
 
-An enterprise-shaped Spring Boot + Kafka sample for account profile and authentication workflows.
+An enterprise-shaped Spring Boot + Kafka sample plus a reusable, config-driven event assurance framework.
 
-The app models a small account profile and authentication service:
+The app includes a small account profile and authentication service as a reference producer of events:
 
 ![Account event flow](docs/assets/domain-event-flow.svg)
 
@@ -10,7 +10,24 @@ The app models a small account profile and authentication service:
 2. Each command persists the operational record in H2.
 3. The command emits an `AccountEvent` to Kafka topic `account.events.v1`.
 4. A Spring Kafka consumer tracks consumed events with topic, partition, offset, correlation id, and payload JSON.
-5. Tests separate API integration concerns from Kafka/event-flow concerns.
+5. The Event Assurance Graph turns consumed events into a journey graph and deterministic advisor findings.
+6. Tests separate API integration concerns from Kafka/event-flow concerns.
+
+## What Makes This Project Different
+
+Kafka validation is not just message assertion; it is journey assurance.
+
+This project adds a self-contained event intelligence layer:
+
+- **Event Assurance Graph**: builds graph nodes and edges from consumed Kafka events.
+- **Config-driven advisor**: applies deterministic rules from `app.assurance`, so teams can change lifecycle assertions without Java edits.
+- **Testing recommendations**: reads configured recommendations for API integration, Kafka integration, contract/schema, and UI/e2e tests.
+- **Interactive report metrics**: exposes metadata completeness, offset span, consumer lag, journey duration, and graph hotspots.
+
+No live AI key, vector database, or graph database is required for the default flow. The "agentic" value is deterministic reasoning over event evidence, not a fragile external dependency.
+
+The account domain is optional sample material. The reusable framework lives in `com.balaji.kafkaeventlab.assurance` and is configured through `app.assurance` in `application.yml`.
+For larger environments, the assurance engine reads normalized evidence through `EventEvidenceSource`; JPA/H2 is just the default local source.
 
 ## Tech Stack
 
@@ -53,7 +70,7 @@ curl -X POST http://localhost:8080/api/accounts/users \
 Activate the user:
 
 ```bash
-curl -X POST http://localhost:8080/api/accounts/users/<userId>/status \
+curl -X POST http://localhost:8080/api/accounts/users/<subjectId>/status \
   -H "Content-Type: application/json" \
   -d '{
     "status": "ACTIVE",
@@ -67,7 +84,7 @@ Register a credential reference:
 curl -X POST http://localhost:8080/api/accounts/credentials \
   -H "Content-Type: application/json" \
   -d '{
-    "userId": "<userId>",
+    "userId": "<subjectId>",
     "credentialType": "PASSWORD_HASH",
     "credentialReference": "password-hash:v1:anika",
     "mfaEnabled": true
@@ -97,10 +114,24 @@ Inspect read-side data:
 
 ```bash
 curl http://localhost:8080/api/accounts/users
-curl http://localhost:8080/api/accounts/users/<userId>/credentials
-curl http://localhost:8080/api/accounts/users/<userId>/sign-in-attempts
-curl http://localhost:8080/api/accounts/users/<userId>/password-reset-requests
+curl http://localhost:8080/api/accounts/users/<subjectId>/credentials
+curl http://localhost:8080/api/accounts/users/<subjectId>/sign-in-attempts
+curl http://localhost:8080/api/accounts/users/<subjectId>/password-reset-requests
 curl http://localhost:8080/api/accounts/tracked-events
+```
+
+Inspect event intelligence:
+
+```bash
+curl http://localhost:8080/api/assurance/subjects/<subjectId>/journey
+curl http://localhost:8080/api/assurance/subjects/<subjectId>/findings
+curl http://localhost:8080/api/assurance/testing-recommendations
+```
+
+Open the report view:
+
+```text
+http://localhost:8080/assurance-report.html?subjectId=<subjectId>
 ```
 
 Kafka UI:
@@ -127,19 +158,25 @@ jdbc:h2:mem:kafkaeventlab
 src/main/java/com/balaji/kafkaeventlab
 ├── config
 │   └── KafkaTopicConfig
-└── account
+├── account
     ├── api          command/query controllers and API errors
     ├── application  command DTOs and use-case service
     ├── domain       durable account/profile/auth records and repositories
     ├── event        AccountEvent and Kafka publisher
     └── tracking     Kafka consumer and consumed-event audit log
+└── assurance         config-driven event graph, advisor, APIs, and report models
 ```
 
 ## Test Layout
 
-- `AccountApiIntegrationTests`: API + validation + service + JPA. Kafka publisher is mocked because broker behavior is not the point of this level.
-- `AccountKafkaIntegrationTests`: Spring Boot + Testcontainers Kafka + real producer/consumer + consumed-event tracking assertions.
+- `AccountApiIntegrationTests`: API + validation + service + JPA + assurance endpoints. Kafka publisher is mocked because broker behavior is not the point of this level.
+- `EventAssuranceAdvisorTests`: config-driven advisor rules without Spring or Kafka.
+- `AccountKafkaIntegrationTests`: Spring Boot + Testcontainers Kafka + real producer/consumer + consumed-event tracking and assurance graph assertions.
 
 See [docs/account-testing-strategy.md](docs/account-testing-strategy.md).
+
+For the reusable framework configuration model, see [docs/universal-event-assurance-framework.md](docs/universal-event-assurance-framework.md).
+
+For the flow diagrams and visual explanation, see [docs/event-assurance-visual-story.md](docs/event-assurance-visual-story.md).
 
 For a blog-style write-up, see [docs/medium-account-kafka-testing.md](docs/medium-account-kafka-testing.md).

@@ -1,6 +1,8 @@
 package com.balaji.kafkaeventlab.account.tracking;
 
 import com.balaji.kafkaeventlab.account.event.AccountEvent;
+import com.balaji.kafkaeventlab.assurance.EventEvidence;
+import com.balaji.kafkaeventlab.assurance.EventEvidenceRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -12,14 +14,14 @@ import java.time.Instant;
 @Component
 public class AccountEventConsumer {
 
-    private final AccountTrackedEventRepository trackedEventRepository;
+    private final EventEvidenceRepository eventEvidenceRepository;
     private final ObjectMapper objectMapper;
 
     public AccountEventConsumer(
-            AccountTrackedEventRepository trackedEventRepository,
+            EventEvidenceRepository eventEvidenceRepository,
             ObjectMapper objectMapper
     ) {
-        this.trackedEventRepository = trackedEventRepository;
+        this.eventEvidenceRepository = eventEvidenceRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -27,7 +29,7 @@ public class AccountEventConsumer {
     @KafkaListener(topics = "${app.kafka.account-events-topic}", groupId = "${spring.kafka.consumer.group-id}")
     public void consume(ConsumerRecord<String, AccountEvent> record) throws JsonProcessingException {
         AccountEvent event = record.value();
-        trackedEventRepository.save(new AccountTrackedEvent(
+        eventEvidenceRepository.save(new EventEvidence(
                 event.eventId(),
                 event.eventType(),
                 event.aggregateType(),
@@ -39,6 +41,7 @@ public class AccountEventConsumer {
                 record.offset(),
                 event.occurredAt(),
                 Instant.now(),
+                event.schemaVersion(),
                 objectMapper.writeValueAsString(event)
         ));
     }

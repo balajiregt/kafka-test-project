@@ -12,7 +12,7 @@
 | Event payload | `AccountEvent` JSON |
 | Listener / consumer | `AccountEventConsumer` with `@KafkaListener` |
 | Consumer group | `account-event-tracker` |
-| Tracking table | `AccountTrackedEvent` audit log |
+| Event evidence store | `EventEvidence` normalized evidence log |
 
 ## Broker
 
@@ -56,7 +56,7 @@ In this app, `AccountEventConsumer` is the listener:
 @KafkaListener(topics = "${app.kafka.account-events-topic}", groupId = "${spring.kafka.consumer.group-id}")
 ```
 
-The listener receives an `AccountEvent` and stores consumed-event metadata in `AccountTrackedEvent`.
+The listener receives an `AccountEvent` and stores normalized event evidence in `EventEvidence`.
 
 ## Why Use Aggregate Id As Kafka Key?
 

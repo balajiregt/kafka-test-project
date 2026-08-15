@@ -11,6 +11,7 @@ Kafka integration tests require Docker because they use Testcontainers Kafka.
 ## API Integration Test
 
 `AccountApiIntegrationTests` starts Spring Boot with MockMvc and JPA, but mocks `AccountEventPublisher`.
+The test also stores synthetic consumed-event evidence so the assurance endpoints can be verified without a broker.
 
 Use this style for:
 
@@ -21,6 +22,18 @@ Use this style for:
 - database writes
 - API error mapping
 - profile/auth lifecycle behavior
+- assurance journey and advisor API responses
+
+## Advisor Unit Test
+
+`EventAssuranceAdvisorTests` runs config-driven event-intelligence rules without Spring, Kafka, or a database.
+
+Use this style for:
+
+- lifecycle ordering rules
+- failed sign-in classification
+- password reset ordering
+- Kafka metadata classification
 
 ## Kafka Integration Test
 
@@ -35,6 +48,7 @@ Use this style for:
 - consumer processing
 - event-driven read-side projection updates
 - eventual consistency assertions
+- assurance graph/advisor behavior over events that passed through Kafka
 
 ## Manual Smoke Flow
 
@@ -52,7 +66,16 @@ Use this style for:
 
 3. Use `requests.http` or curl commands from the README.
 
-4. Open Kafka UI at:
+4. Inspect assurance output:
+
+   ```text
+   GET /api/assurance/subjects/{subjectId}/journey
+   GET /api/assurance/subjects/{subjectId}/findings
+   GET /api/assurance/testing-recommendations
+   GET /assurance-report.html?subjectId={subjectId}
+   ```
+
+5. Open Kafka UI at:
 
    ```text
    http://localhost:8085

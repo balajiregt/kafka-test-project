@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event Assurance Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #647184;
+      --line: #d9dee7;
+      --blue: #2563eb;
+      --green: #16815d;
+      --amber: #b76a00;
+      --red: #bf2f38;
+      --teal: #0f766e;
+      --violet: #6d4aff;
+      --shadow: 0 12px 30px rgba(25, 32, 43, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.4;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(340px, 560px);
+      gap: 20px;
+      align-items: end;
+      padding: 18px 0 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 760px;
+    }
+
+    .loader {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .loader input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    .loader input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .loader button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      padding: 12px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .status-line {
+      min-height: 22px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .metric,
+    .panel,
+    .finding,
+    .recommendation {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric {
+      padding: 16px;
+      min-height: 106px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .metric-value {
+      margin-top: 10px;
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .metric-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      background: #f9fafb;
+      white-space: nowrap;
+    }
+
+    .graph-wrap {
+      width: 100%;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    #graphSvg {
+      display: block;
+      min-width: 820px;
+      width: 100%;
+      height: 470px;
+    }
+
+    .graph-facts {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .fact {
+      padding: 10px;
+      border: 1px solid #edf0f5;
+      border-radius: 8px;
+      background: #fff;
+      min-width: 0;
+    }
+
+    .fact span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .fact b {
+      display: block;
+      margin-top: 4px;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+    }
+
+    .node-details {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .detail-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .detail-title strong {
+      overflow-wrap: anywhere;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .detail-kv {
+      padding: 8px;
+      border: 1px solid #edf0f5;
+      border-radius: 8px;
+      background: #fbfcfe;
+      min-width: 0;
+    }
+
+    .detail-kv span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .detail-kv b {
+      display: block;
+      margin-top: 3px;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .connection-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .connection-list li {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid #edf0f5;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      background: #fbfcfe;
+    }
+
+    .connection-list strong {
+      display: block;
+      color: var(--ink);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .graph-node {
+      cursor: pointer;
+      outline: none;
+    }
+
+    .graph-node:focus-visible circle:first-child {
+      stroke: var(--ink);
+      stroke-width: 4px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .event-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .event-index {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #e8eefc;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .event-type {
+      font-weight: 760;
+      overflow-wrap: anywhere;
+    }
+
+    .event-meta {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .offset {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .findings {
+      display: grid;
+      gap: 10px;
+    }
+
+    .finding {
+      padding: 12px;
+      box-shadow: none;
+    }
+
+    .finding-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .finding-rule {
+      font-weight: 760;
+      overflow-wrap: anywhere;
+    }
+
+    .badge {
+      display: inline-flex;
+      justify-content: center;
+      min-width: 58px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.pass {
+      background: var(--green);
+    }
+
+    .badge.warn {
+      background: var(--amber);
+    }
+
+    .badge.fail {
+      background: var(--red);
+    }
+
+    .finding-message {
+      margin: 8px 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #eef1f6;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .layer {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .recommendations {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .recommendation {
+      padding: 14px;
+      box-shadow: none;
+    }
+
+    .recommendation h3 {
+      margin: 10px 0 8px;
+      font-size: 15px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .recommendation p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .examples {
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+    }
+
+    .examples li {
+      color: var(--muted);
+      font-size: 12px;
+      padding-left: 12px;
+      position: relative;
+    }
+
+    .examples li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: var(--teal);
+    }
+
+    .framework-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .framework-block {
+      padding: 14px;
+      border: 1px solid #edf0f5;
+      border-radius: 8px;
+      background: #fff;
+      min-width: 0;
+    }
+
+    .framework-block h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .framework-block ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+    }
+
+    .framework-block li {
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 20px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .error {
+      color: var(--red);
+    }
+
+    @media (max-width: 1080px) {
+      .topbar,
+      .grid,
+      .recommendations,
+      .framework-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .status-line {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        padding: 16px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .loader {
+        grid-template-columns: 1fr;
+      }
+
+      .loader button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .event-row {
+        grid-template-columns: 30px 1fr;
+      }
+
+      .offset {
+        grid-column: 2;
+      }
+
+      .graph-facts,
+      .detail-grid,
+      .connection-list li {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <section class="topbar">
+    <div>
+      <h1>Event Assurance Report</h1>
+      <p class="subtitle">Kafka validation as journey assurance, with graph evidence and deterministic advisor findings.</p>
+    </div>
+    <div>
+      <form class="loader" id="reportForm">
+        <input id="subjectIdInput" name="subjectId" autocomplete="off" placeholder="Subject id">
+        <button type="submit">Load Report</button>
+      </form>
+      <div class="status-line" id="statusLine">Ready</div>
+    </div>
+  </section>
+
+  <section class="metrics" aria-label="Journey metrics">
+    <article class="metric">
+      <div class="metric-label">Events</div>
+      <div class="metric-value" id="eventCount">0</div>
+      <div class="metric-note">consumed records</div>
+    </article>
+    <article class="metric">
+      <div class="metric-label">Nodes</div>
+      <div class="metric-value" id="nodeCount">0</div>
+      <div class="metric-note">graph objects</div>
+    </article>
+    <article class="metric">
+      <div class="metric-label">Edges</div>
+      <div class="metric-value" id="edgeCount">0</div>
+      <div class="metric-note">relationships</div>
+    </article>
+    <article class="metric">
+      <div class="metric-label">Advisor</div>
+      <div class="metric-value" id="advisorScore">--</div>
+      <div class="metric-note" id="advisorNote">findings</div>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Assurance Graph</h2>
+        <span class="pill" id="graphPill">0 edges</span>
+      </div>
+      <div class="graph-wrap">
+        <svg id="graphSvg" viewBox="0 0 1000 470" role="img" aria-label="Event assurance graph"></svg>
+      </div>
+      <div class="graph-facts" id="graphFacts"></div>
+      <div class="node-details" id="nodeDetails">
+        <div class="empty">Click a graph node to highlight its connected events and relationships.</div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Advisor Findings</h2>
+        <span class="pill" id="findingPill">0 rules</span>
+      </div>
+      <div class="findings" id="findings"></div>
+    </article>
+  </section>
+
+  <section class="grid" style="margin-top:16px">
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Event Timeline</h2>
+        <span class="pill" id="timelinePill">0 events</span>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Event Type Bars</h2>
+        <span class="pill" id="barsPill">distribution</span>
+      </div>
+      <div class="findings" id="eventBars"></div>
+    </article>
+  </section>
+
+  <section class="panel" style="margin-top:16px">
+    <div class="panel-header">
+      <h2>Testing Recommendations</h2>
+      <span class="pill">layered strategy</span>
+    </div>
+    <div class="recommendations" id="recommendations"></div>
+  </section>
+
+  <section class="panel" style="margin-top:16px">
+    <div class="panel-header">
+      <h2>Framework Fit</h2>
+      <span class="pill">portable core</span>
+    </div>
+    <div class="framework-grid">
+      <article class="framework-block">
+        <h3>Evidence Adapter</h3>
+        <ul>
+          <li>Default local source: JPA/H2 through EventEvidenceSource.</li>
+          <li>Enterprise source: Kafka replay, OpenSearch, Loki, Datadog, or CI artifacts.</li>
+          <li>Orchestration changes evidence collection, not advisor logic.</li>
+        </ul>
+      </article>
+      <article class="framework-block">
+        <h3>Rule Inputs</h3>
+        <ul>
+          <li>Required event metadata and schema fields.</li>
+          <li>Lifecycle ordering rules and failure policies.</li>
+          <li>Graph relationship mappings and test-layer recommendations.</li>
+        </ul>
+      </article>
+      <article class="framework-block">
+        <h3>AI Assistant Context</h3>
+        <ul>
+          <li>AsyncAPI or event catalog for Kafka contracts.</li>
+          <li>OpenAPI for command APIs and business operations.</li>
+          <li>Consumer ownership, workflow docs, and sample payloads.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+</main>
+
+<script>
+  const state = {
+    journey: null,
+    findings: [],
+    recommendations: [],
+    selectedNodeId: null
+  };
+
+  const colors = {
+    PASS: '#16815d',
+    WARN: '#b76a00',
+    FAIL: '#bf2f38',
+    EVENT: '#17202a'
+  };
+
+  const graphPalette = ['#2563eb', '#0f766e', '#6d4aff', '#b76a00', '#bf2f38', '#647184'];
+
+  const params = new URLSearchParams(window.location.search);
+  const input = document.getElementById('subjectIdInput');
+  input.value = params.get('subjectId') || params.get('userId') || '';
+
+  document.getElementById('reportForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    loadReport(input.value.trim());
+  });
+
+  if (input.value) {
+    loadReport(input.value);
+  } else {
+    loadRecommendations();
+    renderEmpty();
+  }
+
+  async function loadReport(subjectId) {
+    if (!subjectId) {
+      setStatus('Enter a subject id', true);
+      return;
+    }
+    setStatus('Loading');
+    try {
+      const [journey, findings, recommendations] = await Promise.all([
+        fetchJson(`/api/assurance/subjects/${subjectId}/journey`),
+        fetchJson(`/api/assurance/subjects/${subjectId}/findings`),
+        fetchJson('/api/assurance/testing-recommendations')
+      ]);
+      state.journey = journey;
+      state.findings = findings;
+      state.recommendations = recommendations;
+      state.selectedNodeId = null;
+      params.set('subjectId', subjectId);
+      params.delete('userId');
+      history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
+      render();
+      setStatus(`Loaded ${subjectId}`);
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message, true);
+    }
+  }
+
+  async function loadRecommendations() {
+    try {
+      state.recommendations = await fetchJson('/api/assurance/testing-recommendations');
+      renderRecommendations();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  function setStatus(message, isError = false) {
+    const status = document.getElementById('statusLine');
+    status.textContent = message;
+    status.classList.toggle('error', isError);
+  }
+
+  function renderEmpty() {
+    document.getElementById('timeline').innerHTML = '<div class="empty">No journey loaded</div>';
+    document.getElementById('findings').innerHTML = '<div class="empty">No findings loaded</div>';
+    document.getElementById('eventBars').innerHTML = '<div class="empty">No event distribution loaded</div>';
+    document.getElementById('graphFacts').innerHTML = '';
+    document.getElementById('nodeDetails').innerHTML = '<div class="empty">Click a graph node to highlight its connected events and relationships.</div>';
+    drawGraph([], []);
+  }
+
+  function render() {
+    renderMetrics();
+    renderTimeline();
+    renderFindings();
+    renderEventBars();
+    renderRecommendations();
+    renderGraphFacts();
+    renderNodeDetails();
+    drawGraph(state.journey.nodes || [], state.journey.edges || []);
+  }
+
+  function renderMetrics() {
+    const summary = state.journey.summary || {};
+    const graphMetrics = summary.graphMetrics || {};
+    const findings = state.findings || [];
+    const pass = findings.filter((finding) => finding.status === 'PASS').length;
+    document.getElementById('eventCount').textContent = summary.totalEvents || 0;
+    document.getElementById('nodeCount').textContent = summary.totalNodes || 0;
+    document.getElementById('edgeCount').textContent = summary.totalEdges || 0;
+    document.getElementById('advisorScore').textContent = findings.length ? `${pass}/${findings.length}` : '--';
+    document.getElementById('advisorNote').textContent = findings.length
+      ? `${graphMetrics.missingMetadataEvents || 0} metadata gaps`
+      : 'findings';
+    document.getElementById('graphPill').textContent = `${summary.totalEdges || 0} edges / ${graphMetrics.sequenceEdges || 0} sequence`;
+    document.getElementById('findingPill').textContent = `${findings.length} rules`;
+    document.getElementById('timelinePill').textContent = `${summary.totalEvents || 0} events`;
+  }
+
+  function renderGraphFacts() {
+    const summary = state.journey.summary || {};
+    const metrics = summary.graphMetrics || {};
+    document.getElementById('graphFacts').innerHTML = `
+      <div class="fact"><span>Metadata Complete</span><b>${metrics.metadataCompleteEvents || 0}/${summary.totalEvents || 0}</b></div>
+      <div class="fact"><span>Offset Span</span><b>${metrics.offsetSpan ?? 0}</b></div>
+      <div class="fact"><span>Avg Consume Lag</span><b>${formatMillis(metrics.averageConsumeLagMillis)}</b></div>
+      <div class="fact"><span>Journey Duration</span><b>${formatMillis(metrics.journeyDurationMillis)}</b></div>
+    `;
+  }
+
+  function renderTimeline() {
+    const events = state.journey.orderedEvents || [];
+    document.getElementById('timeline').innerHTML = events.length ? events.map((event, index) => `
+      <div class="event-row">
+        <div class="event-index">${index + 1}</div>
+        <div>
+          <div class="event-type">${escapeHtml(event.eventType)}</div>
+          <div class="event-meta">${escapeHtml(event.aggregateType)} / ${escapeHtml(event.aggregateId)}</div>
+        </div>
+        <div class="offset">p${event.partitionNumber} / o${event.offsetNumber}</div>
+      </div>
+    `).join('') : '<div class="empty">No events available</div>';
+  }
+
+  function renderFindings() {
+    const findings = state.findings || [];
+    document.getElementById('findings').innerHTML = findings.length ? findings.map((finding) => {
+      const width = finding.status === 'PASS' ? 100 : finding.status === 'WARN' ? 62 : 38;
+      return `
+        <article class="finding">
+          <div class="finding-top">
+            <div class="finding-rule">${escapeHtml(finding.ruleId)}</div>
+            <span class="badge ${finding.status.toLowerCase()}">${escapeHtml(finding.status)}</span>
+          </div>
+          <p class="finding-message">${escapeHtml(finding.message)}</p>
+          <div class="bar"><div class="bar-fill" style="width:${width}%; background:${colors[finding.status] || colors.EVENT}"></div></div>
+          <div class="layer">${escapeHtml(finding.recommendedTestLayer)} / ${escapeHtml(finding.severity)}</div>
+        </article>
+      `;
+    }).join('') : '<div class="empty">No findings available</div>';
+  }
+
+  function renderEventBars() {
+    const counts = (state.journey.summary && state.journey.summary.eventCountByType) || {};
+    const max = Math.max(1, ...Object.values(counts));
+    document.getElementById('eventBars').innerHTML = Object.entries(counts).map(([eventType, count]) => `
+      <article class="finding">
+        <div class="finding-top">
+          <div class="finding-rule">${escapeHtml(eventType)}</div>
+          <span class="pill">${count}</span>
+        </div>
+        <div class="bar" style="margin-top:12px">
+          <div class="bar-fill" style="width:${Math.max(8, (count / max) * 100)}%; background:${eventColor(eventType)}"></div>
+        </div>
+      </article>
+    `).join('') || '<div class="empty">No event counts available</div>';
+  }
+
+  function renderRecommendations() {
+    const recommendations = state.recommendations || [];
+    document.getElementById('recommendations').innerHTML = recommendations.map((recommendation) => `
+      <article class="recommendation">
+        <span class="pill">${escapeHtml(recommendation.testLayer)}</span>
+        <h3>${escapeHtml(recommendation.capability)}</h3>
+        <p>${escapeHtml(recommendation.whyHere)}</p>
+        <ul class="examples">
+          ${(recommendation.exampleAssertions || []).slice(0, 3).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+        </ul>
+      </article>
+    `).join('');
+  }
+
+  function drawGraph(nodes, edges) {
+    const svg = document.getElementById('graphSvg');
+    svg.innerHTML = '';
+    const width = 1000;
+    const height = 470;
+    if (!nodes.length) {
+      svg.appendChild(svgText(width / 2, height / 2, 'No graph loaded', 'middle', '#647184', 18));
+      return;
+    }
+
+    const positions = layoutNodes(nodes);
+    const connectedNodeIds = connectedNodesForSelection(edges);
+    const connectedEdgeKeys = connectedEdgesForSelection(edges);
+    edges.forEach((edge) => {
+      const from = positions.get(edge.fromNodeId);
+      const to = positions.get(edge.toNodeId);
+      if (!from || !to) return;
+      const isConnected = !state.selectedNodeId || connectedEdgeKeys.has(edgeKey(edge));
+      const line = svgEl('line', {
+        x1: from.x,
+        y1: from.y,
+        x2: to.x,
+        y2: to.y,
+        stroke: edgeColor(edge.edgeType),
+        'stroke-width': isConnected ? (edge.edgeType === 'FOLLOWS_EVENT' ? 3.5 : 2.5) : 1,
+        'stroke-dasharray': edge.edgeType === 'FOLLOWS_EVENT' ? '0' : '5 5',
+        opacity: isConnected ? 0.92 : 0.12
+      });
+      svg.appendChild(line);
+    });
+
+    nodes.forEach((node) => {
+      const position = positions.get(node.nodeId);
+      const isSelected = state.selectedNodeId === node.nodeId;
+      const isConnected = !state.selectedNodeId || connectedNodeIds.has(node.nodeId);
+      const group = svgEl('g', {
+        class: 'graph-node',
+        tabindex: '0',
+        role: 'button',
+        'aria-label': `Select ${node.label}`,
+        opacity: isConnected ? 1 : 0.22
+      });
+      const fill = node.nodeType === 'EVENT' ? colors.EVENT : colorForKey(node.nodeType);
+      group.appendChild(svgEl('circle', {
+        cx: position.x,
+        cy: position.y,
+        r: isSelected ? (node.nodeType === 'EVENT' ? 24 : 30) : (node.nodeType === 'EVENT' ? 19 : 25),
+        fill,
+        stroke: isSelected ? '#17202a' : fill,
+        'stroke-width': isSelected ? 4 : 0,
+        opacity: 0.95
+      }));
+      group.appendChild(svgEl('circle', {
+        cx: position.x,
+        cy: position.y,
+        r: isSelected ? (node.nodeType === 'EVENT' ? 32 : 38) : (node.nodeType === 'EVENT' ? 24 : 31),
+        fill: 'none',
+        stroke: fill,
+        'stroke-width': isSelected ? 2.5 : 1.5,
+        opacity: isSelected ? 0.38 : 0.2
+      }));
+      group.appendChild(svgText(position.x, position.y + 46, compactLabel(node.label), 'middle', '#17202a', 12));
+      group.appendChild(svgText(position.x, position.y + 62, node.nodeType, 'middle', '#647184', 10));
+      group.addEventListener('click', () => selectNode(node.nodeId));
+      group.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectNode(node.nodeId);
+        }
+      });
+      svg.appendChild(group);
+    });
+  }
+
+  function selectNode(nodeId) {
+    state.selectedNodeId = state.selectedNodeId === nodeId ? null : nodeId;
+    renderNodeDetails();
+    drawGraph(state.journey.nodes || [], state.journey.edges || []);
+  }
+
+  function renderNodeDetails() {
+    const container = document.getElementById('nodeDetails');
+    const journey = state.journey;
+    if (!journey || !state.selectedNodeId) {
+      container.innerHTML = '<div class="empty">Click a graph node to highlight its connected events and relationships.</div>';
+      return;
+    }
+
+    const nodes = journey.nodes || [];
+    const edges = journey.edges || [];
+    const node = nodes.find((candidate) => candidate.nodeId === state.selectedNodeId);
+    if (!node) {
+      container.innerHTML = '<div class="empty">Selected node is no longer available.</div>';
+      return;
+    }
+
+    const connections = edges
+      .filter((edge) => edge.fromNodeId === node.nodeId || edge.toNodeId === node.nodeId)
+      .map((edge) => {
+        const otherId = edge.fromNodeId === node.nodeId ? edge.toNodeId : edge.fromNodeId;
+        return {
+          edge,
+          direction: edge.fromNodeId === node.nodeId ? 'outgoing' : 'incoming',
+          other: nodes.find((candidate) => candidate.nodeId === otherId)
+        };
+      });
+
+    const attributes = node.attributes || {};
+    container.innerHTML = `
+      <div class="detail-title">
+        <strong>${escapeHtml(node.label)}</strong>
+        <button type="button" class="pill" id="clearNodeSelection">Clear</button>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-kv"><span>Node Type</span><b>${escapeHtml(node.nodeType)}</b></div>
+        <div class="detail-kv"><span>Connections</span><b>${connections.length}</b></div>
+        <div class="detail-kv"><span>Node Id</span><b>${escapeHtml(node.nodeId)}</b></div>
+        <div class="detail-kv"><span>Aggregate Id</span><b>${escapeHtml(attributes.aggregateId || attributes.subjectId || attributes.userId || attributes.eventId || 'n/a')}</b></div>
+        ${node.nodeType === 'EVENT' ? `
+          <div class="detail-kv"><span>Correlation Id</span><b>${escapeHtml(attributes.correlationId || 'missing')}</b></div>
+          <div class="detail-kv"><span>Schema / Offset</span><b>v${escapeHtml(attributes.schemaVersion || 'missing')} / ${escapeHtml(attributes.offsetNumber ?? 'missing')}</b></div>
+          <div class="detail-kv"><span>Kafka Location</span><b>${escapeHtml(attributes.topicName || 'missing')} p${escapeHtml(attributes.partitionNumber ?? 'missing')}</b></div>
+          <div class="detail-kv"><span>Payload Fields</span><b>${escapeHtml(attributes.dataFieldCount ?? 0)}</b></div>
+        ` : ''}
+      </div>
+      <ul class="connection-list">
+        ${connections.map(({edge, direction, other}) => `
+          <li>
+            <span>
+              <strong>${escapeHtml(other ? other.label : 'Unknown node')}</strong>
+              ${escapeHtml(direction)} / ${escapeHtml(edge.edgeType)}
+            </span>
+            <span class="pill">${escapeHtml(edge.label)}</span>
+          </li>
+        `).join('') || '<li><span><strong>No direct connections</strong>Try another node.</span></li>'}
+      </ul>
+    `;
+    document.getElementById('clearNodeSelection').addEventListener('click', () => {
+      state.selectedNodeId = null;
+      renderNodeDetails();
+      drawGraph(state.journey.nodes || [], state.journey.edges || []);
+    });
+  }
+
+  function connectedNodesForSelection(edges) {
+    if (!state.selectedNodeId) {
+      return new Set();
+    }
+    const connected = new Set([state.selectedNodeId]);
+    edges.forEach((edge) => {
+      if (edge.fromNodeId === state.selectedNodeId) {
+        connected.add(edge.toNodeId);
+      }
+      if (edge.toNodeId === state.selectedNodeId) {
+        connected.add(edge.fromNodeId);
+      }
+    });
+    return connected;
+  }
+
+  function connectedEdgesForSelection(edges) {
+    if (!state.selectedNodeId) {
+      return new Set();
+    }
+    return new Set(
+      edges
+        .filter((edge) => edge.fromNodeId === state.selectedNodeId || edge.toNodeId === state.selectedNodeId)
+        .map(edgeKey)
+    );
+  }
+
+  function edgeKey(edge) {
+    return `${edge.fromNodeId}|${edge.toNodeId}|${edge.edgeType}|${edge.label}`;
+  }
+
+  function layoutNodes(nodes) {
+    const positions = new Map();
+    const events = nodes.filter((node) => node.nodeType === 'EVENT');
+    const others = nodes.filter((node) => node.nodeType !== 'EVENT');
+    const eventGap = 820 / Math.max(1, events.length - 1);
+    events.forEach((node, index) => {
+      positions.set(node.nodeId, {
+        x: events.length === 1 ? 500 : 90 + (index * eventGap),
+        y: 250
+      });
+    });
+    const nodeTypes = [...new Set(others.map((node) => node.nodeType))];
+    const laneY = (nodeType) => {
+      const index = nodeTypes.indexOf(nodeType);
+      return index === 0 ? 95 : 355 + ((index - 1) % 2) * 58;
+    };
+    others.forEach((node, index) => {
+      positions.set(node.nodeId, {
+        x: index === 0 ? 90 : 230 + (index * 160),
+        y: laneY(node.nodeType)
+      });
+    });
+    return positions;
+  }
+
+  function svgEl(name, attributes) {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', name);
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+    return element;
+  }
+
+  function svgText(x, y, text, anchor, fill, size) {
+    const element = svgEl('text', {
+      x,
+      y,
+      'text-anchor': anchor,
+      fill,
+      'font-size': size,
+      'font-weight': size >= 12 ? 700 : 600
+    });
+    element.textContent = text;
+    return element;
+  }
+
+  function eventColor(eventType) {
+    return colorForKey(eventType || 'EVENT');
+  }
+
+  function edgeColor(edgeType) {
+    if (edgeType === 'FOLLOWS_EVENT') return '#2563eb';
+    if (edgeType === 'AFFECTS_SUBJECT') return '#16815d';
+    if (edgeType === 'PRODUCED_EVENT') return '#647184';
+    return colorForKey(edgeType || 'EDGE');
+  }
+
+  function compactLabel(label) {
+    if (!label) return '';
+    return label.length > 24 ? `${label.slice(0, 21)}...` : label;
+  }
+
+  function formatMillis(value) {
+    if (value === null || value === undefined) {
+      return 'n/a';
+    }
+    if (value < 1000) {
+      return `${value} ms`;
+    }
+    return `${(value / 1000).toFixed(1)} s`;
+  }
+
+  function colorForKey(key) {
+    const text = String(key || 'unknown');
+    let hash = 0;
+    for (let index = 0; index < text.length; index += 1) {
+      hash = ((hash << 5) - hash) + text.charCodeAt(index);
+      hash |= 0;
+    }
+    return graphPalette[Math.abs(hash) % graphPalette.length];
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+</script>
+</body>
+</html>

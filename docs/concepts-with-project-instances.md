@@ -252,7 +252,7 @@ In our app, the listener:
 
 ```text
 reads AccountEvent
-  -> saves AccountTrackedEvent
+  -> saves EventEvidence
 ```
 
 ## Consumer Group
@@ -265,7 +265,7 @@ Consumers in the same group divide partitions among themselves.
 
 ## Event Tracking
 
-`AccountTrackedEvent` stores:
+`EventEvidence` stores:
 
 - event id
 - event type
@@ -302,7 +302,7 @@ POST /api/accounts/password-resets/complete
   -> AccountEventPublisher sends event to Kafka
   -> Kafka broker stores event in account.events.v1
   -> AccountEventConsumer receives event
-  -> AccountTrackedEvent stores audit metadata
+  -> EventEvidence stores normalized evidence metadata
 ```
 
 This is the key separation:

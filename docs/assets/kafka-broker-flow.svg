@@ -51,7 +51,7 @@
 
   <rect class="projection" x="690" y="225" width="210" height="80"/>
   <text class="label" x="736" y="258">Tracking</text>
-  <text class="small" x="720" y="284">AccountTrackedEvent</text>
+  <text class="small" x="720" y="284">EventEvidence</text>
 
   <path class="arrow" d="M210 165 H300"/>
   <path class="arrow" d="M600 160 H690"/>

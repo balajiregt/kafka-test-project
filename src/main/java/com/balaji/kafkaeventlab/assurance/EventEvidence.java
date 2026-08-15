@@ -1,4 +1,4 @@
-package com.balaji.kafkaeventlab.account.tracking;
+package com.balaji.kafkaeventlab.assurance;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,8 +9,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "account_tracked_events")
-public class AccountTrackedEvent {
+@Table(name = "event_evidence")
+public class EventEvidence {
 
     @Id
     private UUID eventId;
@@ -18,45 +18,48 @@ public class AccountTrackedEvent {
     private String eventType;
     private String aggregateType;
     private UUID aggregateId;
-    private UUID subjectUserId;
+    private UUID subjectId;
     private String correlationId;
     private String topicName;
     private Integer partitionNumber;
     private Long offsetNumber;
     private Instant occurredAt;
     private Instant consumedAt;
+    private Integer schemaVersion;
 
     @Column(length = 6000)
     private String eventJson;
 
-    protected AccountTrackedEvent() {
+    protected EventEvidence() {
     }
 
-    public AccountTrackedEvent(
+    public EventEvidence(
             UUID eventId,
             String eventType,
             String aggregateType,
             UUID aggregateId,
-            UUID subjectUserId,
+            UUID subjectId,
             String correlationId,
             String topicName,
             Integer partitionNumber,
             Long offsetNumber,
             Instant occurredAt,
             Instant consumedAt,
+            Integer schemaVersion,
             String eventJson
     ) {
         this.eventId = eventId;
         this.eventType = eventType;
         this.aggregateType = aggregateType;
         this.aggregateId = aggregateId;
-        this.subjectUserId = subjectUserId;
+        this.subjectId = subjectId;
         this.correlationId = correlationId;
         this.topicName = topicName;
         this.partitionNumber = partitionNumber;
         this.offsetNumber = offsetNumber;
         this.occurredAt = occurredAt;
         this.consumedAt = consumedAt;
+        this.schemaVersion = schemaVersion;
         this.eventJson = eventJson;
     }
 
@@ -76,8 +79,8 @@ public class AccountTrackedEvent {
         return aggregateId;
     }
 
-    public UUID getSubjectUserId() {
-        return subjectUserId;
+    public UUID getSubjectId() {
+        return subjectId;
     }
 
     public String getCorrelationId() {
@@ -102,6 +105,10 @@ public class AccountTrackedEvent {
 
     public Instant getConsumedAt() {
         return consumedAt;
+    }
+
+    public Integer getSchemaVersion() {
+        return schemaVersion;
     }
 
     public String getEventJson() {

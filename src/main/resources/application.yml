@@ -35,6 +35,119 @@ spring:
 app:
   kafka:
     account-events-topic: account.events.v1
+  assurance:
+    evidence:
+      source-type: jpa
+    event-presence-rule:
+      enabled: true
+      rule-id: journey.events-present
+      empty-severity: HIGH
+      present-severity: LOW
+      empty-status: WARN
+      present-status: PASS
+      empty-message: No consumed Kafka events are available for this journey, so the advisor cannot prove the flow.
+      present-message: Consumed Kafka events exist for this journey.
+      recommended-test-layer: Kafka integration
+    metadata-rule:
+      enabled: true
+      rule-id: metadata.required-fields
+      severity-on-missing: HIGH
+      severity-on-pass: LOW
+      status-on-missing: FAIL
+      status-on-pass: PASS
+      missing-message: "One or more events are missing required metadata fields: {requiredFields}."
+      pass-message: "All consumed events include required metadata fields: {requiredFields}."
+      recommended-test-layer: Contract/schema
+      required-fields:
+        - eventType
+        - aggregateId
+        - subjectId
+        - correlationId
+        - schemaVersion
+        - offsetNumber
+    ordering-rules:
+      - rule-id: lifecycle.registration-before-activation
+        trigger-event-type: USER_STATUS_CHANGED
+        required-prior-event-type: USER_REGISTERED
+        severity-on-failure: HIGH
+        severity-on-pass: LOW
+        status-on-failure: FAIL
+        status-on-pass: PASS
+        status-when-not-applicable: PASS
+        failure-message: USER_STATUS_CHANGED was observed without prior USER_REGISTERED in this journey.
+        pass-message: USER_REGISTERED was observed before USER_STATUS_CHANGED.
+        not-applicable-message: USER_STATUS_CHANGED was not observed, so this ordering rule is not applicable.
+        recommended-test-layer: API integration
+      - rule-id: auth.credential-before-successful-sign-in
+        trigger-event-type: SIGN_IN_SUCCEEDED
+        required-prior-event-type: CREDENTIAL_REGISTERED
+        severity-on-failure: HIGH
+        severity-on-pass: LOW
+        status-on-failure: FAIL
+        status-on-pass: PASS
+        status-when-not-applicable: PASS
+        failure-message: SIGN_IN_SUCCEEDED was observed without prior CREDENTIAL_REGISTERED in this journey.
+        pass-message: CREDENTIAL_REGISTERED was observed before SIGN_IN_SUCCEEDED.
+        not-applicable-message: SIGN_IN_SUCCEEDED was not observed, so this ordering rule is not applicable.
+        recommended-test-layer: API integration
+      - rule-id: reset.request-before-completion
+        trigger-event-type: PASSWORD_RESET_COMPLETED
+        required-prior-event-type: PASSWORD_RESET_REQUESTED
+        severity-on-failure: HIGH
+        severity-on-pass: LOW
+        status-on-failure: FAIL
+        status-on-pass: PASS
+        status-when-not-applicable: PASS
+        failure-message: PASSWORD_RESET_COMPLETED was observed without prior PASSWORD_RESET_REQUESTED in this journey.
+        pass-message: PASSWORD_RESET_REQUESTED was observed before PASSWORD_RESET_COMPLETED.
+        not-applicable-message: PASSWORD_RESET_COMPLETED was not observed, so this ordering rule is not applicable.
+        recommended-test-layer: API integration
+    event-flag-rules:
+      - rule-id: auth.failed-sign-ins-explained
+        event-type: SIGN_IN_FAILED
+        severity-when-present: MEDIUM
+        severity-when-absent: LOW
+        status-when-present: WARN
+        status-when-absent: PASS
+        present-message: SIGN_IN_FAILED events are present; validate API-level reason and user-facing behavior separately.
+        absent-message: No SIGN_IN_FAILED events were observed in this journey.
+        recommended-test-layer: API integration
+    graph-edge-rules:
+      - when-aggregate-type: SIGN_IN_ATTEMPT
+        edge-type: AUTHENTICATES_WITH
+        label: "{eventType}"
+      - when-aggregate-type: PASSWORD_RESET
+        edge-type: RESETS_CREDENTIAL
+        label: "{eventType}"
+    testing-recommendations:
+      - capability: Command validation and domain persistence
+        test-layer: API integration
+        why-here: These checks prove HTTP validation, service decisions, and database state without needing a Kafka broker.
+        example-assertions:
+          - Registering duplicate natural keys returns a validation or business error.
+          - State-changing commands persist the expected aggregate state.
+          - Failure commands store the expected reason.
+      - capability: Event publication and consumption
+        test-layer: Kafka integration
+        why-here: These checks prove the producer, topic, serializer, listener, offset, and tracking table work together.
+        example-assertions:
+          - A command publishes the expected domain event to the configured topic.
+          - The listener stores topic, partition, offset, and payload JSON.
+          - Events for the same aggregate keep expected order.
+      - capability: Event contract and schema evolution
+        test-layer: Contract/schema
+        why-here: These checks protect downstream consumers from silent payload or metadata drift.
+        example-assertions:
+          - Required metadata fields are always present.
+          - Each event type exposes required data fields.
+          - New schema versions remain backward compatible.
+      - capability: Browser user journeys
+        test-layer: UI/e2e
+        why-here: These checks prove the user-facing journey, not the internal Kafka mechanics.
+        example-assertions:
+          - A user can complete a critical browser journey.
+          - UI states match the visible business outcome.
+          - UI tests assert visible outcomes, not Kafka offsets.
 
 management:
   endpoints:

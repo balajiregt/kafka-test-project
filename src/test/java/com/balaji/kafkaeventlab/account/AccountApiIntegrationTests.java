@@ -8,6 +8,9 @@ import com.balaji.kafkaeventlab.account.domain.UserProfileRepository;
 import com.balaji.kafkaeventlab.account.domain.UserStatus;
 import com.balaji.kafkaeventlab.account.event.AccountEvent;
 import com.balaji.kafkaeventlab.account.event.AccountEventPublisher;
+import com.balaji.kafkaeventlab.assurance.EventEvidence;
+import com.balaji.kafkaeventlab.assurance.EventEvidenceRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +27,12 @@ import java.util.concurrent.CompletableFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
@@ -52,17 +57,45 @@ class AccountApiIntegrationTests {
     @Autowired
     private PasswordResetRequestRepository passwordResetRequestRepository;
 
+    @Autowired
+    private EventEvidenceRepository eventEvidenceRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @MockitoBean
     private AccountEventPublisher eventPublisher;
 
+    private long offsetSequence;
+
     @BeforeEach
     void setUp() {
+        eventEvidenceRepository.deleteAll();
         passwordResetRequestRepository.deleteAll();
         signInAttemptRepository.deleteAll();
         userCredentialRepository.deleteAll();
         userProfileRepository.deleteAll();
+        offsetSequence = 0;
         when(eventPublisher.publish(any(AccountEvent.class)))
-                .thenAnswer(invocation -> CompletableFuture.completedFuture(invocation.getArgument(0)));
+                .thenAnswer(invocation -> {
+                    AccountEvent event = invocation.getArgument(0);
+                    eventEvidenceRepository.save(new EventEvidence(
+                            event.eventId(),
+                            event.eventType(),
+                            event.aggregateType(),
+                            event.aggregateId(),
+                            event.subjectUserId(),
+                            event.correlationId(),
+                            "account.events.v1",
+                            0,
+                            offsetSequence++,
+                            event.occurredAt(),
+                            event.occurredAt(),
+                            event.schemaVersion(),
+                            objectMapper.writeValueAsString(event)
+                    ));
+                    return CompletableFuture.completedFuture(event);
+                });
     }
 
     @Test
@@ -137,6 +170,35 @@ class AccountApiIntegrationTests {
                 .hasSize(1)
                 .first()
                 .satisfies(attempt -> assertThat(attempt.getReason()).isEqualTo("Credential accepted"));
+
+        mockMvc.perform(get("/api/assurance/subjects/" + user.getUserId() + "/journey"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.totalEvents").value(6))
+                .andExpect(jsonPath("$.summary.graphMetrics.eventNodeCount").value(6))
+                .andExpect(jsonPath("$.summary.graphMetrics.metadataCompleteEvents").value(6))
+                .andExpect(jsonPath("$.summary.graphMetrics.missingMetadataEvents").value(0))
+                .andExpect(jsonPath("$.summary.graphMetrics.sequenceEdges").value(5))
+                .andExpect(jsonPath("$.orderedEvents[0].eventType").value("USER_REGISTERED"))
+                .andExpect(jsonPath("$.edges[?(@.edgeType == 'FOLLOWS_EVENT')]").isNotEmpty());
+
+        mockMvc.perform(get("/api/assurance/subjects/" + user.getUserId() + "/findings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[1].ruleId").value("metadata.required-fields"))
+                .andExpect(jsonPath("$[1].status").value("PASS"))
+                .andExpect(jsonPath("$[3].ruleId").value("auth.credential-before-successful-sign-in"))
+                .andExpect(jsonPath("$[3].status").value("PASS"))
+                .andExpect(jsonPath("$[?(@.status == 'FAIL')]").isEmpty());
+
+        mockMvc.perform(get("/api/assurance/testing-recommendations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].testLayer").value("API integration"))
+                .andExpect(jsonPath("$[?(@.testLayer == 'Kafka integration')]").isNotEmpty());
+
+        mockMvc.perform(get("/assurance-report.html").param("subjectId", user.getUserId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Event Assurance Report")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Metadata Complete")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Click a graph node")));
     }
 
     private ResultActions performAsyncPost(String url, String json) throws Exception {

@@ -9,7 +9,7 @@ They should use Testcontainers because the behavior depends on a real broker.
 
 Cover these at Kafka integration level:
 
-| Concern | Example in digital digital account profile and authentication service |
+| Concern | Example in account profile and authentication service |
 | --- | --- |
 | Topic provisioning | `account.events.v1` exists with expected partitions |
 | Producer routing | event key is the aggregate id |
@@ -32,7 +32,7 @@ Kafka should usually be mocked or replaced with a test double at this level.
 
 Cover these at API integration level:
 
-| Concern | Example in digital digital account profile and authentication service |
+| Concern | Example in account profile and authentication service |
 | --- | --- |
 | HTTP routing | `POST /api/accounts/users` reaches the command handler |
 | Request validation | invalid email or missing credential reference returns `400` |
@@ -59,6 +59,22 @@ Do not require a Kafka broker for most API tests. If API tests depend on Kafka t
 4. **End-to-end tests**
    A tiny number of browser or black-box flows. Assert user-visible outcomes first. Kafka assertions here should be rare smoke checks using correlation ids.
 
+## Event Intelligence Layer
+
+Kafka validation is not just message assertion; it is journey assurance.
+
+This project adds an `assurance` module that reads normalized `EventEvidence` records through `EventEvidenceSource` and builds an Event Assurance Graph. The graph connects subjects, aggregates, configured domain relationships, and events. A deterministic advisor then evaluates configured lifecycle and metadata rules.
+
+Use the assurance endpoints to answer higher-value test questions:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/assurance/subjects/{subjectId}/journey` | Shows ordered events, graph nodes, graph edges, and journey summary |
+| `GET /api/assurance/subjects/{subjectId}/findings` | Shows advisor rule results with evidence event ids and recommended test layer |
+| `GET /api/assurance/testing-recommendations` | Explains what belongs in API, Kafka, contract/schema, and UI/e2e tests |
+
+The advisor is "agentic" in the practical sense: it reasons over event evidence and recommends where to test behavior. It does not depend on a live LLM, so it remains deterministic and CI-friendly.
+
 ## Why Not Put Kafka Assertions In E2E Specs?
 
 Combining UI flow plus Kafka validation in the same spec couples unrelated failure modes:
@@ -76,6 +92,7 @@ That combination tends to reduce parallelism and increase flaky CI failures. Kaf
 | Test | Level | Kafka behavior |
 | --- | --- | --- |
 | `AccountApiIntegrationTests` | API integration | mocked publisher |
+| `EventAssuranceAdvisorTests` | unit | no Kafka; config-driven advisor rules |
 | `AccountKafkaIntegrationTests` | Kafka integration | Testcontainers Kafka |
 
 This is the scalable baseline: API tests stay fast and deterministic, while Kafka behavior is validated with a real broker at the proper layer.

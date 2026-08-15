@@ -7,10 +7,12 @@ import com.balaji.kafkaeventlab.account.application.RegisterUserCommand;
 import com.balaji.kafkaeventlab.account.application.RequestPasswordResetCommand;
 import com.balaji.kafkaeventlab.account.application.SignInCommand;
 import com.balaji.kafkaeventlab.account.application.UpdateUserStatusCommand;
+import com.balaji.kafkaeventlab.assurance.EventAssuranceAdvisor;
+import com.balaji.kafkaeventlab.assurance.EventAssuranceGraphService;
 import com.balaji.kafkaeventlab.account.domain.CredentialType;
 import com.balaji.kafkaeventlab.account.domain.UserStatus;
 import com.balaji.kafkaeventlab.account.event.AccountEvent;
-import com.balaji.kafkaeventlab.account.tracking.AccountTrackedEventRepository;
+import com.balaji.kafkaeventlab.assurance.EventEvidenceRepository;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +44,13 @@ class AccountKafkaIntegrationTests {
     private AccountCommandService commandService;
 
     @Autowired
-    private AccountTrackedEventRepository trackedEventRepository;
+    private EventEvidenceRepository eventEvidenceRepository;
+
+    @Autowired
+    private EventAssuranceGraphService graphService;
+
+    @Autowired
+    private EventAssuranceAdvisor advisor;
 
     @Test
     void publishesConsumesAndTracksAccountProfileAndAuthenticationLifecycle() {
@@ -83,18 +91,32 @@ class AccountKafkaIntegrationTests {
         Awaitility.await()
                 .atMost(Duration.ofSeconds(20))
                 .untilAsserted(() -> {
-                    assertThat(trackedEventRepository.findById(userRegistered.eventId())).isPresent();
-                    assertThat(trackedEventRepository.findById(userActivated.eventId())).isPresent();
-                    assertThat(trackedEventRepository.findById(credentialRegistered.eventId())).isPresent();
-                    assertThat(trackedEventRepository.findById(signInSucceeded.eventId()))
+                    assertThat(eventEvidenceRepository.findById(userRegistered.eventId())).isPresent();
+                    assertThat(eventEvidenceRepository.findById(userActivated.eventId())).isPresent();
+                    assertThat(eventEvidenceRepository.findById(credentialRegistered.eventId())).isPresent();
+                    assertThat(eventEvidenceRepository.findById(signInSucceeded.eventId()))
                             .isPresent()
                             .get()
                             .satisfies(event -> assertThat(event.getEventType()).isEqualTo("SIGN_IN_SUCCEEDED"));
-                    assertThat(trackedEventRepository.findById(resetRequested.eventId())).isPresent();
-                    assertThat(trackedEventRepository.findById(resetCompleted.eventId()))
+                    assertThat(eventEvidenceRepository.findById(resetRequested.eventId())).isPresent();
+                    assertThat(eventEvidenceRepository.findById(resetCompleted.eventId()))
                             .isPresent()
                             .get()
                             .satisfies(event -> assertThat(event.getAggregateId()).isEqualTo(resetRequested.aggregateId()));
                 });
+
+        var journey = graphService.journeyForSubject(userRegistered.aggregateId());
+        assertThat(journey.summary().totalEvents()).isEqualTo(6);
+        assertThat(journey.summary().graphMetrics().eventNodeCount()).isEqualTo(6);
+        assertThat(journey.summary().graphMetrics().metadataCompleteEvents()).isEqualTo(6);
+        assertThat(journey.summary().graphMetrics().sequenceEdges()).isEqualTo(5);
+        assertThat(journey.summary().graphMetrics().mostConnectedNodeDegree()).isGreaterThan(0);
+        assertThat(journey.edges())
+                .anySatisfy(edge -> assertThat(edge.edgeType()).isEqualTo("FOLLOWS_EVENT"))
+                .anySatisfy(edge -> assertThat(edge.edgeType()).isEqualTo("AUTHENTICATES_WITH"))
+                .anySatisfy(edge -> assertThat(edge.edgeType()).isEqualTo("RESETS_CREDENTIAL"));
+        assertThat(advisor.findings(journey))
+                .extracting(finding -> finding.status())
+                .containsOnly("PASS");
     }
 }
