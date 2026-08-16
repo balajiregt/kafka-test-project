@@ -11,6 +11,7 @@ public class AssuranceProperties {
     private EventPresenceRule eventPresenceRule = new EventPresenceRule();
     private MetadataRule metadataRule = new MetadataRule();
     private Evidence evidence = new Evidence();
+    private Assistant assistant = new Assistant();
     private List<OrderingRule> orderingRules = new ArrayList<>();
     private List<EventFlagRule> eventFlagRules = new ArrayList<>();
     private List<GraphEdgeRule> graphEdgeRules = new ArrayList<>();
@@ -38,6 +39,14 @@ public class AssuranceProperties {
 
     public void setEvidence(Evidence evidence) {
         this.evidence = evidence;
+    }
+
+    public Assistant getAssistant() {
+        return assistant;
+    }
+
+    public void setAssistant(Assistant assistant) {
+        this.assistant = assistant;
     }
 
     public List<OrderingRule> getOrderingRules() {
@@ -165,6 +174,83 @@ public class AssuranceProperties {
 
         public void setSourceType(String sourceType) {
             this.sourceType = sourceType;
+        }
+    }
+
+    public static class Assistant {
+        private boolean enabled = true;
+        private String apiKeyEnv = "OPENAI_API_KEY";
+        private String defaultBaseUrl = "https://api.openai.com/v1";
+        private String defaultModel = "";
+        private int maxContextSources = 6;
+        private int maxContextCharacters = 16000;
+        private List<String> allowedContextTypes = new ArrayList<>(List.of(
+                "asyncapi",
+                "openapi",
+                "swagger",
+                "event-catalog",
+                "schema",
+                "sample-payload",
+                "workflow",
+                "test-strategy",
+                "consumer-ownership",
+                "freeform"
+        ));
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getApiKeyEnv() {
+            return apiKeyEnv;
+        }
+
+        public void setApiKeyEnv(String apiKeyEnv) {
+            this.apiKeyEnv = apiKeyEnv;
+        }
+
+        public String getDefaultBaseUrl() {
+            return defaultBaseUrl;
+        }
+
+        public void setDefaultBaseUrl(String defaultBaseUrl) {
+            this.defaultBaseUrl = defaultBaseUrl;
+        }
+
+        public String getDefaultModel() {
+            return defaultModel;
+        }
+
+        public void setDefaultModel(String defaultModel) {
+            this.defaultModel = defaultModel;
+        }
+
+        public int getMaxContextSources() {
+            return maxContextSources;
+        }
+
+        public void setMaxContextSources(int maxContextSources) {
+            this.maxContextSources = maxContextSources;
+        }
+
+        public int getMaxContextCharacters() {
+            return maxContextCharacters;
+        }
+
+        public void setMaxContextCharacters(int maxContextCharacters) {
+            this.maxContextCharacters = maxContextCharacters;
+        }
+
+        public List<String> getAllowedContextTypes() {
+            return allowedContextTypes;
+        }
+
+        public void setAllowedContextTypes(List<String> allowedContextTypes) {
+            this.allowedContextTypes = allowedContextTypes;
         }
     }
 

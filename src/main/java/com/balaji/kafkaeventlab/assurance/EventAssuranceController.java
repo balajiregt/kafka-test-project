@@ -2,6 +2,8 @@ package com.balaji.kafkaeventlab.assurance;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,13 +16,16 @@ public class EventAssuranceController {
 
     private final EventAssuranceGraphService graphService;
     private final EventAssuranceAdvisor advisor;
+    private final AssuranceAssistantService assistantService;
 
     public EventAssuranceController(
             EventAssuranceGraphService graphService,
-            EventAssuranceAdvisor advisor
+            EventAssuranceAdvisor advisor,
+            AssuranceAssistantService assistantService
     ) {
         this.graphService = graphService;
         this.advisor = advisor;
+        this.assistantService = assistantService;
     }
 
     @GetMapping("/subjects/{subjectId}/journey")
@@ -36,5 +41,10 @@ public class EventAssuranceController {
     @GetMapping("/testing-recommendations")
     public List<TestingRecommendation> testingRecommendations() {
         return advisor.testingRecommendations();
+    }
+
+    @PostMapping("/config-assistant")
+    public AssuranceAssistantResponse configAssistant(@RequestBody AssuranceAssistantRequest request) {
+        return assistantService.advise(request);
     }
 }

@@ -38,6 +38,24 @@ app:
   assurance:
     evidence:
       source-type: jpa
+    assistant:
+      enabled: true
+      api-key-env: OPENAI_API_KEY
+      default-base-url: https://api.openai.com/v1
+      default-model:
+      max-context-sources: 6
+      max-context-characters: 16000
+      allowed-context-types:
+        - asyncapi
+        - openapi
+        - swagger
+        - event-catalog
+        - schema
+        - sample-payload
+        - workflow
+        - test-strategy
+        - consumer-ownership
+        - freeform
     event-presence-rule:
       enabled: true
       rule-id: journey.events-present

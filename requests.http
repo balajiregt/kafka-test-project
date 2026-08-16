@@ -93,5 +93,38 @@ GET http://localhost:8080/api/assurance/subjects/REPLACE_WITH_USER_ID/findings
 ### Testing recommendations by layer
 GET http://localhost:8080/api/assurance/testing-recommendations
 
+### Assurance config assistant - local deterministic template
+POST http://localhost:8080/api/assurance/config-assistant
+Content-Type: application/json
+
+{
+  "message": "Create assurance YAML for these Kafka events and classify the test layers.",
+  "contextSources": [
+    {
+      "sourceType": "asyncapi",
+      "name": "account-events",
+      "content": "USER_REGISTERED -> USER_STATUS_CHANGED -> CREDENTIAL_REGISTERED -> SIGN_IN_SUCCEEDED. Required metadata: eventType, aggregateId, subjectId, correlationId, schemaVersion, offsetNumber."
+    }
+  ]
+}
+
+### Assurance config assistant - BYOK mode
+POST http://localhost:8080/api/assurance/config-assistant
+Content-Type: application/json
+
+{
+  "message": "Review this assurance YAML and suggest missing rules.",
+  "model": "REPLACE_WITH_MODEL",
+  "apiKey": "REPLACE_WITH_API_KEY",
+  "baseUrl": "https://api.openai.com/v1",
+  "contextSources": [
+    {
+      "sourceType": "openapi",
+      "name": "commands-openapi",
+      "content": "Paste OpenAPI, AsyncAPI, schema, workflow, or sample payload context here."
+    }
+  ]
+}
+
 ### Account assurance report UI
 GET http://localhost:8080/assurance-report.html?subjectId=REPLACE_WITH_USER_ID

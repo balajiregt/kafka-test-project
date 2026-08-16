@@ -23,8 +23,9 @@ This project adds a self-contained event intelligence layer:
 - **Config-driven advisor**: applies deterministic rules from `app.assurance`, so teams can change lifecycle assertions without Java edits.
 - **Testing recommendations**: reads configured recommendations for API integration, Kafka integration, contract/schema, and UI/e2e tests.
 - **Interactive report metrics**: exposes metadata completeness, offset span, consumer lag, journey duration, and graph hotspots.
+- **Assurance Config Assistant**: creates or reviews starter `app.assurance` YAML from supplied context, with deterministic local mode and optional request-scoped BYOK AI mode.
 
-No live AI key, vector database, or graph database is required for the default flow. The "agentic" value is deterministic reasoning over event evidence, not a fragile external dependency.
+No live AI key, vector database, or graph database is required for the default flow. The "agentic" value starts with deterministic reasoning over event evidence; BYOK AI is optional and scoped to assurance configuration help.
 
 The account domain is optional sample material. The reusable framework lives in `com.balaji.kafkaeventlab.assurance` and is configured through `app.assurance` in `application.yml`.
 For larger environments, the assurance engine reads normalized evidence through `EventEvidenceSource`; JPA/H2 is just the default local source.

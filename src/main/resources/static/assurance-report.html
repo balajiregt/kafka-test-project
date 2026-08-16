@@ -530,6 +530,130 @@
       overflow-wrap: anywhere;
     }
 
+    .assistant-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .assistant-form,
+    .assistant-output {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 11px;
+      outline: none;
+      resize: vertical;
+    }
+
+    .field textarea {
+      min-height: 100px;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .assistant-row {
+      display: grid;
+      grid-template-columns: 170px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .assistant-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .assistant-actions button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      padding: 11px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .assistant-actions button.secondary {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .assistant-status {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .assistant-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .assistant-warnings {
+      display: grid;
+      gap: 6px;
+    }
+
+    .assistant-warning {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #f4d2a4;
+      background: #fff7ed;
+      color: #8a4b00;
+      font-size: 12px;
+    }
+
+    .assistant-pre {
+      margin: 0;
+      min-height: 210px;
+      max-height: 440px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
     .empty {
       color: var(--muted);
       padding: 20px;
@@ -546,7 +670,8 @@
       .topbar,
       .grid,
       .recommendations,
-      .framework-grid {
+      .framework-grid,
+      .assistant-grid {
         grid-template-columns: 1fr;
       }
 
@@ -592,6 +717,7 @@
 
       .graph-facts,
       .detail-grid,
+      .assistant-row,
       .connection-list li {
         grid-template-columns: 1fr;
       }
@@ -719,6 +845,78 @@
       </article>
     </div>
   </section>
+
+  <section class="panel" style="margin-top:16px">
+    <div class="panel-header">
+      <h2>Assurance Config Assistant</h2>
+      <span class="pill">BYOK optional</span>
+    </div>
+    <div class="assistant-grid">
+      <form class="assistant-form" id="assistantForm">
+        <div class="field">
+          <label for="assistantMessage">Request</label>
+          <textarea id="assistantMessage">Create assurance YAML for these Kafka events and classify the test layers.</textarea>
+        </div>
+        <div class="assistant-row">
+          <div class="field">
+            <label for="contextType">Context Type</label>
+            <select id="contextType">
+              <option value="asyncapi">AsyncAPI</option>
+              <option value="openapi">OpenAPI</option>
+              <option value="event-catalog">Event Catalog</option>
+              <option value="schema">Schema</option>
+              <option value="sample-payload">Sample Payload</option>
+              <option value="workflow">Workflow</option>
+              <option value="test-strategy">Test Strategy</option>
+              <option value="consumer-ownership">Consumer Ownership</option>
+              <option value="freeform">Freeform</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="contextName">Context Name</label>
+            <input id="contextName" value="account-events">
+          </div>
+        </div>
+        <div class="field">
+          <label for="contextContent">Context</label>
+          <textarea id="contextContent">USER_REGISTERED -> USER_STATUS_CHANGED -> CREDENTIAL_REGISTERED -> SIGN_IN_SUCCEEDED -> PASSWORD_RESET_REQUESTED -> PASSWORD_RESET_COMPLETED. Required metadata: eventType, aggregateId, subjectId, correlationId, schemaVersion, offsetNumber.</textarea>
+        </div>
+        <div class="assistant-row">
+          <div class="field">
+            <label for="assistantModel">Model</label>
+            <input id="assistantModel" placeholder="optional">
+          </div>
+          <div class="field">
+            <label for="assistantBaseUrl">Base URL</label>
+            <input id="assistantBaseUrl" value="https://api.openai.com/v1">
+          </div>
+        </div>
+        <div class="field">
+          <label for="assistantApiKey">API Key</label>
+          <input id="assistantApiKey" type="password" autocomplete="off" placeholder="optional">
+        </div>
+        <div class="assistant-actions">
+          <button type="submit">Ask Assistant</button>
+          <button type="button" class="secondary" id="clearAssistantKey">Clear Key</button>
+          <span class="assistant-status" id="assistantStatus">Local template mode is available without a key.</span>
+        </div>
+      </form>
+      <div class="assistant-output">
+        <p class="assistant-copy" id="assistantReply">The assistant is restricted to assurance YAML, Kafka/event context, graph mappings, and test-layer strategy.</p>
+        <div class="assistant-warnings" id="assistantWarnings"></div>
+        <pre class="assistant-pre" id="assistantYaml">app:
+  assurance:
+    metadata-rule:
+      required-fields:
+        - eventType
+        - aggregateId
+        - subjectId
+        - correlationId
+        - schemaVersion
+        - offsetNumber</pre>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -745,6 +943,14 @@
   document.getElementById('reportForm').addEventListener('submit', (event) => {
     event.preventDefault();
     loadReport(input.value.trim());
+  });
+  document.getElementById('assistantForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    askAssistant();
+  });
+  document.getElementById('clearAssistantKey').addEventListener('click', () => {
+    document.getElementById('assistantApiKey').value = '';
+    setAssistantStatus('Key cleared');
   });
 
   if (input.value) {
@@ -798,10 +1004,61 @@
     return response.json();
   }
 
+  async function postJson(url, body) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
   function setStatus(message, isError = false) {
     const status = document.getElementById('statusLine');
     status.textContent = message;
     status.classList.toggle('error', isError);
+  }
+
+  function setAssistantStatus(message, isError = false) {
+    const status = document.getElementById('assistantStatus');
+    status.textContent = message;
+    status.classList.toggle('error', isError);
+  }
+
+  async function askAssistant() {
+    const contextContent = document.getElementById('contextContent').value.trim();
+    const payload = {
+      message: document.getElementById('assistantMessage').value.trim(),
+      contextSources: contextContent ? [{
+        sourceType: document.getElementById('contextType').value,
+        name: document.getElementById('contextName').value.trim() || 'unnamed',
+        content: contextContent
+      }] : [],
+      model: document.getElementById('assistantModel').value.trim() || null,
+      baseUrl: document.getElementById('assistantBaseUrl').value.trim() || null,
+      apiKey: document.getElementById('assistantApiKey').value.trim() || null
+    };
+
+    setAssistantStatus('Thinking');
+    try {
+      const response = await postJson('/api/assurance/config-assistant', payload);
+      renderAssistantResponse(response);
+      setAssistantStatus(`${response.status} / ${response.mode}`);
+    } catch (error) {
+      console.error(error);
+      setAssistantStatus(error.message, true);
+    }
+  }
+
+  function renderAssistantResponse(response) {
+    document.getElementById('assistantReply').textContent = response.reply || 'No reply returned.';
+    document.getElementById('assistantWarnings').innerHTML = (response.warnings || []).map((warning) => (
+      `<div class="assistant-warning">${escapeHtml(warning)}</div>`
+    )).join('');
+    document.getElementById('assistantYaml').textContent = response.suggestedYaml || response.reply || '';
   }
 
   function renderEmpty() {

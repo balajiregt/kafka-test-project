@@ -155,7 +155,7 @@ So the answer is: the current sample setup is intentionally lightweight, but the
 
 ## AI Assistant Context Inputs
 
-If a BYOK AI assistant is added later to help users draft `app.assurance` YAML, it should be restricted to assurance-configuration help. It should ask for or accept these context inputs:
+The BYOK AI assistant helps users draft `app.assurance` YAML, and it is restricted to assurance-configuration help. It should ask for or accept these context inputs:
 
 - AsyncAPI, event catalog, or schema registry exports for Kafka event contracts.
 - OpenAPI or Swagger for command APIs and business operations.
@@ -168,6 +168,57 @@ If a BYOK AI assistant is added later to help users draft `app.assurance` YAML, 
 OpenAPI/Swagger alone is not enough for Kafka assurance. It helps infer commands and business operations, but AsyncAPI, event schemas, topic details, sample payloads, and consumer expectations are stronger inputs for Kafka rules.
 
 The assistant should refuse unrelated requests and produce only framework artifacts such as YAML rules, metadata expectations, graph edge mappings, test recommendations, and review comments on supplied assurance configuration.
+
+## Assurance Config Assistant
+
+The project includes a scoped assistant endpoint:
+
+```text
+POST /api/assurance/config-assistant
+```
+
+It has two modes:
+
+- `local-template`: deterministic starter YAML when no API key/model is supplied.
+- `byok-ai`: request-scoped live AI call when the user supplies an API key and model, or when the configured environment variable contains the key.
+
+The API key is not stored by the app. It is used only for the current request.
+
+Example request:
+
+```json
+{
+  "message": "Create assurance YAML for these Kafka events and classify the test layers.",
+  "contextSources": [
+    {
+      "sourceType": "asyncapi",
+      "name": "order-events",
+      "content": "ORDER_CREATED, PAYMENT_CAPTURED, ORDER_SHIPPED events with correlationId and schemaVersion"
+    }
+  ]
+}
+```
+
+The assistant applies guardrails before it calls any live model. It only accepts assurance-related requests and supported context types. Unrelated prompts return `REFUSED`.
+
+Supported context types are configured under:
+
+```yaml
+app:
+  assurance:
+    assistant:
+      allowed-context-types:
+        - asyncapi
+        - openapi
+        - swagger
+        - event-catalog
+        - schema
+        - sample-payload
+        - workflow
+        - test-strategy
+        - consumer-ownership
+        - freeform
+```
 
 ## How To Use In Another Project
 
