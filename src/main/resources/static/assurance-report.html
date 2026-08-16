@@ -654,13 +654,14 @@
       overflow-wrap: anywhere;
     }
 
-    .scenario-grid {
+    .playground-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+      gap: 14px;
+      align-items: stretch;
     }
 
-    .scenario-card {
+    .playground-panel {
       display: grid;
       gap: 10px;
       padding: 14px;
@@ -670,20 +671,27 @@
       min-width: 0;
     }
 
-    .scenario-card h3 {
+    .playground-panel h3 {
       margin: 0;
       font-size: 15px;
       line-height: 1.25;
       letter-spacing: 0;
     }
 
-    .scenario-card p {
+    .playground-panel p {
       margin: 0;
       color: var(--muted);
       font-size: 12px;
     }
 
-    .scenario-card button {
+    .playground-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .playground-actions button {
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
@@ -691,6 +699,25 @@
       padding: 10px 12px;
       cursor: pointer;
       font-weight: 750;
+    }
+
+    .playground-actions button.primary {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .playground-samples {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .playground-textarea {
+      min-height: 320px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
     }
 
     .empty {
@@ -710,7 +737,7 @@
       .grid,
       .recommendations,
       .framework-grid,
-      .scenario-grid,
+      .playground-grid,
       .assistant-grid {
         grid-template-columns: 1fr;
       }
@@ -888,29 +915,30 @@
 
   <section class="panel" style="margin-top:16px">
     <div class="panel-header">
-      <h2>Demo Scenarios</h2>
-      <span class="pill" id="scenarioStatus">negative evidence</span>
+      <h2>Evidence Playground</h2>
+      <span class="pill" id="playgroundStatus">disabled by default</span>
     </div>
-    <div class="scenario-grid">
-      <article class="scenario-card">
-        <h3>Incorrect Sequence</h3>
-        <p>SIGN_IN_SUCCEEDED appears before any CREDENTIAL_REGISTERED event.</p>
-        <button type="button" data-scenario="incorrect-sign-in-sequence">Load FAIL</button>
+    <div class="playground-grid">
+      <article class="playground-panel">
+        <div class="field">
+          <label for="playgroundPayload">Evidence JSON</label>
+          <textarea id="playgroundPayload" class="playground-textarea" spellcheck="false"></textarea>
+        </div>
+        <div class="playground-actions">
+          <button type="button" class="primary" id="submitPlaygroundEvidence">Submit Evidence</button>
+          <button type="button" id="formatPlaygroundEvidence">Format JSON</button>
+        </div>
       </article>
-      <article class="scenario-card">
-        <h3>Missing Metadata</h3>
-        <p>Required Kafka evidence fields such as correlation id, schema version, or offset are missing.</p>
-        <button type="button" data-scenario="missing-metadata">Load FAIL</button>
-      </article>
-      <article class="scenario-card">
-        <h3>Reset Gap</h3>
-        <p>PASSWORD_RESET_COMPLETED appears without PASSWORD_RESET_REQUESTED first.</p>
-        <button type="button" data-scenario="reset-completed-without-request">Load FAIL</button>
-      </article>
-      <article class="scenario-card">
-        <h3>Failed Sign-In</h3>
-        <p>SIGN_IN_FAILED appears and should be interpreted as an advisor warning.</p>
-        <button type="button" data-scenario="failed-sign-in-warning">Load WARN</button>
+      <article class="playground-panel">
+        <h3>Samples</h3>
+        <p>Load a sample, change event names or metadata, then submit it to the same graph/advisor pipeline.</p>
+        <div class="playground-samples">
+          <button type="button" data-playground-sample="incorrectSequence">Sequence Gap</button>
+          <button type="button" data-playground-sample="missingMetadata">Metadata Gap</button>
+          <button type="button" data-playground-sample="resetGap">Lifecycle Gap</button>
+          <button type="button" data-playground-sample="failedEvent">Warning Event</button>
+        </div>
+        <p>Enable locally with <strong>app.assurance.playground.enabled=true</strong>. Keep it disabled in shared runtime environments unless this endpoint is protected.</p>
       </article>
     </div>
   </section>
@@ -1009,6 +1037,114 @@
   const input = document.getElementById('subjectIdInput');
   input.value = params.get('subjectId') || params.get('userId') || '';
 
+  const playgroundSamples = {
+    incorrectSequence: {
+      scenarioName: 'sequence-gap',
+      subjectId: '10000000-0000-0000-0000-000000000101',
+      events: [
+        {
+          eventType: 'USER_REGISTERED',
+          aggregateType: 'USER',
+          aggregateId: '10000000-0000-0000-0000-000000000101',
+          subjectId: '10000000-0000-0000-0000-000000000101',
+          correlationId: 'corr-sequence-001',
+          topicName: 'playground.assurance.events.v1',
+          partitionNumber: 0,
+          offsetNumber: 0,
+          schemaVersion: 1,
+          data: {status: 'ACTIVE'}
+        },
+        {
+          eventType: 'SIGN_IN_SUCCEEDED',
+          aggregateType: 'SIGN_IN_ATTEMPT',
+          aggregateId: '10000000-0000-0000-0000-000000000102',
+          subjectId: '10000000-0000-0000-0000-000000000101',
+          correlationId: 'corr-sequence-002',
+          topicName: 'playground.assurance.events.v1',
+          partitionNumber: 0,
+          offsetNumber: 1,
+          schemaVersion: 1,
+          data: {result: 'SUCCESS'}
+        }
+      ]
+    },
+    missingMetadata: {
+      scenarioName: 'metadata-gap',
+      subjectId: '20000000-0000-0000-0000-000000000201',
+      events: [
+        {
+          eventType: 'USER_REGISTERED',
+          aggregateType: 'USER',
+          aggregateId: '20000000-0000-0000-0000-000000000201',
+          subjectId: '20000000-0000-0000-0000-000000000201',
+          topicName: 'playground.assurance.events.v1',
+          partitionNumber: 0,
+          data: {status: 'PENDING_ACTIVATION'}
+        }
+      ]
+    },
+    resetGap: {
+      scenarioName: 'lifecycle-gap',
+      subjectId: '30000000-0000-0000-0000-000000000301',
+      events: [
+        {
+          eventType: 'USER_REGISTERED',
+          aggregateType: 'USER',
+          aggregateId: '30000000-0000-0000-0000-000000000301',
+          subjectId: '30000000-0000-0000-0000-000000000301',
+          correlationId: 'corr-reset-001',
+          topicName: 'playground.assurance.events.v1',
+          partitionNumber: 0,
+          offsetNumber: 0,
+          schemaVersion: 1,
+          data: {status: 'ACTIVE'}
+        },
+        {
+          eventType: 'PASSWORD_RESET_COMPLETED',
+          aggregateType: 'PASSWORD_RESET',
+          aggregateId: '30000000-0000-0000-0000-000000000302',
+          subjectId: '30000000-0000-0000-0000-000000000301',
+          correlationId: 'corr-reset-002',
+          topicName: 'playground.assurance.events.v1',
+          partitionNumber: 0,
+          offsetNumber: 1,
+          schemaVersion: 1,
+          data: {status: 'COMPLETED'}
+        }
+      ]
+    },
+    failedEvent: {
+      scenarioName: 'warning-event',
+      subjectId: '40000000-0000-0000-0000-000000000401',
+      events: [
+        {
+          eventType: 'USER_REGISTERED',
+          aggregateType: 'USER',
+          aggregateId: '40000000-0000-0000-0000-000000000401',
+          subjectId: '40000000-0000-0000-0000-000000000401',
+          correlationId: 'corr-warning-001',
+          topicName: 'playground.assurance.events.v1',
+          partitionNumber: 0,
+          offsetNumber: 0,
+          schemaVersion: 1,
+          data: {status: 'ACTIVE'}
+        },
+        {
+          eventType: 'SIGN_IN_FAILED',
+          aggregateType: 'SIGN_IN_ATTEMPT',
+          aggregateId: '40000000-0000-0000-0000-000000000402',
+          subjectId: '40000000-0000-0000-0000-000000000401',
+          correlationId: 'corr-warning-002',
+          topicName: 'playground.assurance.events.v1',
+          partitionNumber: 0,
+          offsetNumber: 1,
+          schemaVersion: 1,
+          data: {result: 'FAILURE', reason: 'Credential was not accepted'}
+        }
+      ]
+    }
+  };
+
   document.getElementById('reportForm').addEventListener('submit', (event) => {
     event.preventDefault();
     loadReport(input.value.trim());
@@ -1021,9 +1157,12 @@
     document.getElementById('assistantApiKey').value = '';
     setAssistantStatus('Key cleared');
   });
-  document.querySelectorAll('[data-scenario]').forEach((button) => {
-    button.addEventListener('click', () => createDemoScenario(button.dataset.scenario));
+  document.getElementById('submitPlaygroundEvidence').addEventListener('click', submitPlaygroundEvidence);
+  document.getElementById('formatPlaygroundEvidence').addEventListener('click', formatPlaygroundEvidence);
+  document.querySelectorAll('[data-playground-sample]').forEach((button) => {
+    button.addEventListener('click', () => loadPlaygroundSample(button.dataset.playgroundSample));
   });
+  loadPlaygroundSample('incorrectSequence');
 
   if (input.value) {
     loadReport(input.value);
@@ -1133,14 +1272,34 @@
     document.getElementById('assistantYaml').textContent = response.suggestedYaml || response.reply || '';
   }
 
-  async function createDemoScenario(scenario) {
-    const status = document.getElementById('scenarioStatus');
-    status.textContent = 'creating';
+  function loadPlaygroundSample(sampleName) {
+    const sample = playgroundSamples[sampleName];
+    if (!sample) {
+      return;
+    }
+    document.getElementById('playgroundPayload').value = JSON.stringify(sample, null, 2);
+    document.getElementById('playgroundStatus').textContent = sample.scenarioName;
+  }
+
+  function formatPlaygroundEvidence() {
     try {
-      const response = await postJson(`/api/assurance/demo-scenarios/${scenario}`, {});
+      const payload = JSON.parse(document.getElementById('playgroundPayload').value);
+      document.getElementById('playgroundPayload').value = JSON.stringify(payload, null, 2);
+      document.getElementById('playgroundStatus').textContent = 'formatted';
+    } catch (error) {
+      document.getElementById('playgroundStatus').textContent = error.message;
+    }
+  }
+
+  async function submitPlaygroundEvidence() {
+    const status = document.getElementById('playgroundStatus');
+    status.textContent = 'submitting';
+    try {
+      const payload = JSON.parse(document.getElementById('playgroundPayload').value);
+      const response = await postJson('/api/assurance/playground/evidence', payload);
       input.value = response.subjectId;
       await loadReport(response.subjectId);
-      status.textContent = response.scenario;
+      status.textContent = response.scenarioName;
     } catch (error) {
       console.error(error);
       status.textContent = error.message;

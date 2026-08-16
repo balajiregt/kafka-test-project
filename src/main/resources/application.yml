@@ -38,8 +38,9 @@ app:
   assurance:
     evidence:
       source-type: jpa
-    demo-scenarios:
-      enabled: true
+    playground:
+      enabled: false
+      default-topic: playground.assurance.events.v1
     assistant:
       enabled: true
       api-key-env: OPENAI_API_KEY

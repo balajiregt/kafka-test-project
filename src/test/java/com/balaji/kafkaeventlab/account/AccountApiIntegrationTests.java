@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,7 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "spring.kafka.admin.auto-create=false",
-        "spring.kafka.listener.auto-startup=false"
+        "spring.kafka.listener.auto-startup=false",
+        "app.assurance.playground.enabled=true"
 })
 @AutoConfigureMockMvc
 class AccountApiIntegrationTests {
@@ -203,23 +205,161 @@ class AccountApiIntegrationTests {
     }
 
     @Test
-    void createsNegativeAssuranceDemoScenarios() throws Exception {
-        mockMvc.perform(post("/api/assurance/demo-scenarios/incorrect-sign-in-sequence"))
+    void evaluatesUserSuppliedPlaygroundEvidence() throws Exception {
+        UUID sequenceSubject = UUID.randomUUID();
+        mockMvc.perform(post("/api/assurance/playground/evidence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "scenarioName": "sequence-gap",
+                                  "subjectId": "%s",
+                                  "events": [
+                                    {
+                                      "eventType": "USER_REGISTERED",
+                                      "aggregateType": "USER",
+                                      "aggregateId": "%s",
+                                      "subjectId": "%s",
+                                      "correlationId": "corr-sequence-001",
+                                      "topicName": "playground.assurance.events.v1",
+                                      "partitionNumber": 0,
+                                      "offsetNumber": 0,
+                                      "schemaVersion": 1,
+                                      "data": {"status": "ACTIVE"}
+                                    },
+                                    {
+                                      "eventType": "SIGN_IN_SUCCEEDED",
+                                      "aggregateType": "SIGN_IN_ATTEMPT",
+                                      "aggregateId": "%s",
+                                      "subjectId": "%s",
+                                      "correlationId": "corr-sequence-002",
+                                      "topicName": "playground.assurance.events.v1",
+                                      "partitionNumber": 0,
+                                      "offsetNumber": 1,
+                                      "schemaVersion": 1,
+                                      "data": {"result": "SUCCESS"}
+                                    }
+                                  ]
+                                }
+                                """.formatted(
+                                sequenceSubject,
+                                sequenceSubject,
+                                sequenceSubject,
+                                UUID.randomUUID(),
+                                sequenceSubject
+                        )))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary.totalEvents").value(2))
                 .andExpect(jsonPath("$.findings[?(@.ruleId == 'auth.credential-before-successful-sign-in' && @.status == 'FAIL')]").isNotEmpty())
                 .andExpect(jsonPath("$.reportPath").value(org.hamcrest.Matchers.startsWith("/assurance-report.html?subjectId=")));
 
-        mockMvc.perform(post("/api/assurance/demo-scenarios/missing-metadata"))
+        UUID metadataSubject = UUID.randomUUID();
+        mockMvc.perform(post("/api/assurance/playground/evidence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "scenarioName": "metadata-gap",
+                                  "subjectId": "%s",
+                                  "events": [
+                                    {
+                                      "eventType": "USER_REGISTERED",
+                                      "aggregateType": "USER",
+                                      "subjectId": "%s",
+                                      "topicName": "playground.assurance.events.v1",
+                                      "partitionNumber": 0,
+                                      "data": {"status": "PENDING_ACTIVATION"}
+                                    }
+                                  ]
+                                }
+                                """.formatted(metadataSubject, metadataSubject)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary.graphMetrics.missingMetadataEvents").value(1))
                 .andExpect(jsonPath("$.findings[?(@.ruleId == 'metadata.required-fields' && @.status == 'FAIL')]").isNotEmpty());
 
-        mockMvc.perform(post("/api/assurance/demo-scenarios/reset-completed-without-request"))
+        UUID resetSubject = UUID.randomUUID();
+        mockMvc.perform(post("/api/assurance/playground/evidence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "scenarioName": "reset-gap",
+                                  "subjectId": "%s",
+                                  "events": [
+                                    {
+                                      "eventType": "USER_REGISTERED",
+                                      "aggregateType": "USER",
+                                      "aggregateId": "%s",
+                                      "subjectId": "%s",
+                                      "correlationId": "corr-reset-001",
+                                      "topicName": "playground.assurance.events.v1",
+                                      "partitionNumber": 0,
+                                      "offsetNumber": 0,
+                                      "schemaVersion": 1,
+                                      "data": {"status": "ACTIVE"}
+                                    },
+                                    {
+                                      "eventType": "PASSWORD_RESET_COMPLETED",
+                                      "aggregateType": "PASSWORD_RESET",
+                                      "aggregateId": "%s",
+                                      "subjectId": "%s",
+                                      "correlationId": "corr-reset-002",
+                                      "topicName": "playground.assurance.events.v1",
+                                      "partitionNumber": 0,
+                                      "offsetNumber": 1,
+                                      "schemaVersion": 1,
+                                      "data": {"status": "COMPLETED"}
+                                    }
+                                  ]
+                                }
+                                """.formatted(
+                                resetSubject,
+                                resetSubject,
+                                resetSubject,
+                                UUID.randomUUID(),
+                                resetSubject
+                        )))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.findings[?(@.ruleId == 'reset.request-before-completion' && @.status == 'FAIL')]").isNotEmpty());
 
-        mockMvc.perform(post("/api/assurance/demo-scenarios/failed-sign-in-warning"))
+        UUID warningSubject = UUID.randomUUID();
+        mockMvc.perform(post("/api/assurance/playground/evidence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "scenarioName": "warning-event",
+                                  "subjectId": "%s",
+                                  "events": [
+                                    {
+                                      "eventType": "USER_REGISTERED",
+                                      "aggregateType": "USER",
+                                      "aggregateId": "%s",
+                                      "subjectId": "%s",
+                                      "correlationId": "corr-warning-001",
+                                      "topicName": "playground.assurance.events.v1",
+                                      "partitionNumber": 0,
+                                      "offsetNumber": 0,
+                                      "schemaVersion": 1,
+                                      "data": {"status": "ACTIVE"}
+                                    },
+                                    {
+                                      "eventType": "SIGN_IN_FAILED",
+                                      "aggregateType": "SIGN_IN_ATTEMPT",
+                                      "aggregateId": "%s",
+                                      "subjectId": "%s",
+                                      "correlationId": "corr-warning-002",
+                                      "topicName": "playground.assurance.events.v1",
+                                      "partitionNumber": 0,
+                                      "offsetNumber": 1,
+                                      "schemaVersion": 1,
+                                      "data": {"result": "FAILURE", "reason": "Credential was not accepted"}
+                                    }
+                                  ]
+                                }
+                                """.formatted(
+                                warningSubject,
+                                warningSubject,
+                                warningSubject,
+                                UUID.randomUUID(),
+                                warningSubject
+                        )))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.findings[?(@.ruleId == 'auth.failed-sign-ins-explained' && @.status == 'WARN')]").isNotEmpty());
     }

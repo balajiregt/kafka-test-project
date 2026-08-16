@@ -12,7 +12,7 @@ public class AssuranceProperties {
     private MetadataRule metadataRule = new MetadataRule();
     private Evidence evidence = new Evidence();
     private Assistant assistant = new Assistant();
-    private DemoScenarios demoScenarios = new DemoScenarios();
+    private Playground playground = new Playground();
     private List<OrderingRule> orderingRules = new ArrayList<>();
     private List<EventFlagRule> eventFlagRules = new ArrayList<>();
     private List<GraphEdgeRule> graphEdgeRules = new ArrayList<>();
@@ -50,12 +50,12 @@ public class AssuranceProperties {
         this.assistant = assistant;
     }
 
-    public DemoScenarios getDemoScenarios() {
-        return demoScenarios;
+    public Playground getPlayground() {
+        return playground;
     }
 
-    public void setDemoScenarios(DemoScenarios demoScenarios) {
-        this.demoScenarios = demoScenarios;
+    public void setPlayground(Playground playground) {
+        this.playground = playground;
     }
 
     public List<OrderingRule> getOrderingRules() {
@@ -263,8 +263,9 @@ public class AssuranceProperties {
         }
     }
 
-    public static class DemoScenarios {
-        private boolean enabled = true;
+    public static class Playground {
+        private boolean enabled;
+        private String defaultTopic = "playground.assurance.events.v1";
 
         public boolean isEnabled() {
             return enabled;
@@ -272,6 +273,14 @@ public class AssuranceProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public String getDefaultTopic() {
+            return defaultTopic;
+        }
+
+        public void setDefaultTopic(String defaultTopic) {
+            this.defaultTopic = defaultTopic;
         }
     }
 

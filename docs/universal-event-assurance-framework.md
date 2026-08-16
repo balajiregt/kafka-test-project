@@ -220,23 +220,58 @@ app:
         - freeform
 ```
 
-## Negative Scenario Demo Evidence
+## Evidence Playground
 
-The reference app prevents impossible business states through its command APIs. To test whether the assurance graph can interpret bad Kafka evidence, the lab includes controlled demo evidence endpoints:
+The reference app prevents impossible business states through its command APIs. To test whether the assurance graph can interpret bad or incomplete event evidence, enable the generic playground endpoint only in local or protected lower environments:
 
-```text
-GET  /api/assurance/demo-scenarios
-POST /api/assurance/demo-scenarios/{scenario}
+```yaml
+app:
+  assurance:
+    playground:
+      enabled: true
+      default-topic: playground.assurance.events.v1
 ```
 
-Available scenarios:
+```text
+POST /api/assurance/playground/evidence
+```
 
-- `incorrect-sign-in-sequence`: emits `SIGN_IN_SUCCEEDED` without prior `CREDENTIAL_REGISTERED`; expected advisor finding is `FAIL`.
-- `missing-metadata`: emits an event without required metadata such as correlation id, schema version, and offset; expected advisor finding is `FAIL`.
-- `reset-completed-without-request`: emits `PASSWORD_RESET_COMPLETED` without prior `PASSWORD_RESET_REQUESTED`; expected advisor finding is `FAIL`.
-- `failed-sign-in-warning`: emits `SIGN_IN_FAILED`; expected advisor finding is `WARN`.
+Example payload:
 
-Each call creates a new subject id and returns a `reportPath`. Open that report to inspect:
+```json
+{
+  "scenarioName": "sequence-gap",
+  "subjectId": "10000000-0000-0000-0000-000000000101",
+  "events": [
+    {
+      "eventType": "USER_REGISTERED",
+      "aggregateType": "USER",
+      "aggregateId": "10000000-0000-0000-0000-000000000101",
+      "subjectId": "10000000-0000-0000-0000-000000000101",
+      "correlationId": "corr-sequence-001",
+      "topicName": "playground.assurance.events.v1",
+      "partitionNumber": 0,
+      "offsetNumber": 0,
+      "schemaVersion": 1,
+      "data": {"status": "ACTIVE"}
+    },
+    {
+      "eventType": "SIGN_IN_SUCCEEDED",
+      "aggregateType": "SIGN_IN_ATTEMPT",
+      "aggregateId": "10000000-0000-0000-0000-000000000102",
+      "subjectId": "10000000-0000-0000-0000-000000000101",
+      "correlationId": "corr-sequence-002",
+      "topicName": "playground.assurance.events.v1",
+      "partitionNumber": 0,
+      "offsetNumber": 1,
+      "schemaVersion": 1,
+      "data": {"result": "SUCCESS"}
+    }
+  ]
+}
+```
+
+The endpoint stores the supplied evidence, evaluates the configured rules, and returns a `reportPath`. Open that report to inspect:
 
 - graph nodes and connected edges
 - ordered event timeline
@@ -244,7 +279,7 @@ Each call creates a new subject id and returns a `reportPath`. Open that report 
 - exact evidence event ids behind each finding
 - metadata completeness metrics
 
-These endpoints are for lab/demo use. Production-style projects should usually generate negative evidence through test fixtures, CI artifacts, or dedicated lower-environment collectors rather than exposing write endpoints publicly.
+This endpoint is disabled by default because it writes synthetic evidence. Production-style projects should usually generate negative evidence through test fixtures, CI artifacts, or dedicated lower-environment collectors rather than exposing write endpoints publicly.
 
 ## How To Use In Another Project
 

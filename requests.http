@@ -93,20 +93,61 @@ GET http://localhost:8080/api/assurance/subjects/REPLACE_WITH_USER_ID/findings
 ### Testing recommendations by layer
 GET http://localhost:8080/api/assurance/testing-recommendations
 
-### List assurance demo scenarios
-GET http://localhost:8080/api/assurance/demo-scenarios
+### Evidence playground - sequence gap
+# Requires app.assurance.playground.enabled=true
+POST http://localhost:8080/api/assurance/playground/evidence
+Content-Type: application/json
 
-### Negative scenario - successful sign-in without credential registered first
-POST http://localhost:8080/api/assurance/demo-scenarios/incorrect-sign-in-sequence
+{
+  "scenarioName": "sequence-gap",
+  "subjectId": "10000000-0000-0000-0000-000000000101",
+  "events": [
+    {
+      "eventType": "USER_REGISTERED",
+      "aggregateType": "USER",
+      "aggregateId": "10000000-0000-0000-0000-000000000101",
+      "subjectId": "10000000-0000-0000-0000-000000000101",
+      "correlationId": "corr-sequence-001",
+      "topicName": "playground.assurance.events.v1",
+      "partitionNumber": 0,
+      "offsetNumber": 0,
+      "schemaVersion": 1,
+      "data": {"status": "ACTIVE"}
+    },
+    {
+      "eventType": "SIGN_IN_SUCCEEDED",
+      "aggregateType": "SIGN_IN_ATTEMPT",
+      "aggregateId": "10000000-0000-0000-0000-000000000102",
+      "subjectId": "10000000-0000-0000-0000-000000000101",
+      "correlationId": "corr-sequence-002",
+      "topicName": "playground.assurance.events.v1",
+      "partitionNumber": 0,
+      "offsetNumber": 1,
+      "schemaVersion": 1,
+      "data": {"result": "SUCCESS"}
+    }
+  ]
+}
 
-### Negative scenario - event missing required metadata
-POST http://localhost:8080/api/assurance/demo-scenarios/missing-metadata
+### Evidence playground - metadata gap
+# Requires app.assurance.playground.enabled=true
+POST http://localhost:8080/api/assurance/playground/evidence
+Content-Type: application/json
 
-### Negative scenario - password reset completed without request first
-POST http://localhost:8080/api/assurance/demo-scenarios/reset-completed-without-request
-
-### Warning scenario - failed sign-in is present
-POST http://localhost:8080/api/assurance/demo-scenarios/failed-sign-in-warning
+{
+  "scenarioName": "metadata-gap",
+  "subjectId": "20000000-0000-0000-0000-000000000201",
+  "events": [
+    {
+      "eventType": "USER_REGISTERED",
+      "aggregateType": "USER",
+      "subjectId": "20000000-0000-0000-0000-000000000201",
+      "topicName": "playground.assurance.events.v1",
+      "partitionNumber": 0,
+      "data": {"status": "PENDING_ACTIVATION"}
+    }
+  ]
+}
 
 ### Assurance config assistant - local deterministic template
 POST http://localhost:8080/api/assurance/config-assistant
