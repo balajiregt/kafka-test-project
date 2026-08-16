@@ -451,6 +451,31 @@
       margin-top: 16px;
     }
 
+    .recommendation-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .recommendation-filter {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 8px 11px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .recommendation-filter.active {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
     .recommendation {
       padding: 14px;
       box-shadow: none;
@@ -875,8 +900,9 @@
   <section class="panel" style="margin-top:16px">
     <div class="panel-header">
       <h2>Testing Recommendations</h2>
-      <span class="pill">layered strategy</span>
+      <span class="pill" id="recommendationPill">layered strategy</span>
     </div>
+    <div class="recommendation-filters" id="recommendationFilters"></div>
     <div class="recommendations" id="recommendations"></div>
   </section>
 
@@ -1021,6 +1047,7 @@
     journey: null,
     findings: [],
     recommendations: [],
+    recommendationLayer: 'All',
     selectedNodeId: null
   };
 
@@ -1404,7 +1431,19 @@
 
   function renderRecommendations() {
     const recommendations = state.recommendations || [];
-    document.getElementById('recommendations').innerHTML = recommendations.map((recommendation) => `
+    const layers = recommendationLayers(recommendations);
+    if (state.recommendationLayer !== 'All' && !layers.includes(state.recommendationLayer)) {
+      state.recommendationLayer = 'All';
+    }
+    renderRecommendationFilters(recommendations, layers);
+
+    const visibleRecommendations = state.recommendationLayer === 'All'
+      ? recommendations
+      : recommendations.filter((recommendation) => recommendation.testLayer === state.recommendationLayer);
+
+    document.getElementById('recommendationPill').textContent =
+      `${visibleRecommendations.length}/${recommendations.length} shown`;
+    document.getElementById('recommendations').innerHTML = visibleRecommendations.map((recommendation) => `
       <article class="recommendation">
         <span class="pill">${escapeHtml(recommendation.testLayer)}</span>
         <h3>${escapeHtml(recommendation.capability)}</h3>
@@ -1413,7 +1452,28 @@
           ${(recommendation.exampleAssertions || []).slice(0, 3).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
         </ul>
       </article>
-    `).join('');
+    `).join('') || '<div class="empty">No recommendations for this layer</div>';
+  }
+
+  function recommendationLayers(recommendations) {
+    return [...new Set(recommendations.map((recommendation) => recommendation.testLayer).filter(Boolean))];
+  }
+
+  function renderRecommendationFilters(recommendations, layers) {
+    const filterItems = ['All', ...layers];
+    document.getElementById('recommendationFilters').innerHTML = filterItems.map((layer) => {
+      const count = layer === 'All'
+        ? recommendations.length
+        : recommendations.filter((recommendation) => recommendation.testLayer === layer).length;
+      const active = state.recommendationLayer === layer ? ' active' : '';
+      return `<button type="button" class="recommendation-filter${active}" data-recommendation-layer="${escapeHtml(layer)}">${escapeHtml(layer)} (${count})</button>`;
+    }).join('');
+    document.querySelectorAll('[data-recommendation-layer]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.recommendationLayer = button.dataset.recommendationLayer;
+        renderRecommendations();
+      });
+    });
   }
 
   function drawGraph(nodes, edges) {
