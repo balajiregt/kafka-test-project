@@ -29,8 +29,8 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: com.balaji.kafkaeventlab.*
-        spring.json.value.default.type: com.balaji.kafkaeventlab.account.event.AccountEvent
+        spring.json.trusted.packages: com.example.kafkaeventlab.*
+        spring.json.value.default.type: com.example.kafkaeventlab.account.event.AccountEvent
 
 app:
   kafka:
@@ -48,7 +48,11 @@ app:
       default-model:
       max-context-sources: 6
       max-context-characters: 16000
+      include-context-files-by-default: true
+      context-files:
+        - docs/event-quality-testing-context.md
       allowed-context-types:
+        - application-context
         - asyncapi
         - openapi
         - swagger

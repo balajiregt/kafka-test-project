@@ -1,4 +1,4 @@
-# Account Event Assurance Visual Story
+# Account Event Quality Testing Visual Story
 
 This project treats Kafka events as test evidence. The assurance layer converts that evidence into a journey graph, applies deterministic advisor rules, and shows precise metrics that help a developer decide whether the behavior is healthy before merge.
 

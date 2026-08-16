@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.balaji</groupId>
+    <groupId>com.example</groupId>
     <artifactId>kafka-event-lab</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>kafka-event-lab</name>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Event Assurance Report</title>
+  <title>Event Quality Testing Report</title>
   <style>
     :root {
       color-scheme: light;
@@ -643,6 +643,21 @@
       font-weight: 700;
     }
 
+    .assistant-context-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .assistant-context-toggle input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--blue);
+    }
+
     .assistant-copy {
       margin: 0;
       color: var(--muted);
@@ -661,6 +676,22 @@
       background: #fff7ed;
       color: #8a4b00;
       font-size: 12px;
+    }
+
+    .assistant-context-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .assistant-context-list span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 8px;
+      color: var(--muted);
+      background: #f8fafc;
+      font-size: 11px;
+      font-weight: 750;
     }
 
     .assistant-pre {
@@ -820,8 +851,8 @@
 <main class="shell">
   <section class="topbar">
     <div>
-      <h1>Event Assurance Report</h1>
-      <p class="subtitle">Kafka validation as journey assurance, with graph evidence and deterministic advisor findings.</p>
+      <h1>Event Quality Testing Report</h1>
+      <p class="subtitle">Kafka validation as journey-level QA, with graph evidence and deterministic advisor findings.</p>
     </div>
     <div>
       <form class="loader" id="reportForm">
@@ -858,11 +889,11 @@
   <section class="grid">
     <article class="panel">
       <div class="panel-header">
-        <h2>Assurance Graph</h2>
+        <h2>Quality Evidence Graph</h2>
         <span class="pill" id="graphPill">0 edges</span>
       </div>
       <div class="graph-wrap">
-        <svg id="graphSvg" viewBox="0 0 1000 470" role="img" aria-label="Event assurance graph"></svg>
+        <svg id="graphSvg" viewBox="0 0 1000 470" role="img" aria-label="Event quality testing graph"></svg>
       </div>
       <div class="graph-facts" id="graphFacts"></div>
       <div class="node-details" id="nodeDetails">
@@ -971,19 +1002,24 @@
 
   <section class="panel" style="margin-top:16px">
     <div class="panel-header">
-      <h2>Assurance Config Assistant</h2>
+      <h2>Event Quality Testing Config Assistant</h2>
       <span class="pill">BYOK optional</span>
     </div>
     <div class="assistant-grid">
       <form class="assistant-form" id="assistantForm">
         <div class="field">
           <label for="assistantMessage">Request</label>
-          <textarea id="assistantMessage">Create assurance YAML for these Kafka events and classify the test layers.</textarea>
+          <textarea id="assistantMessage">Create event quality testing YAML for these Kafka events and classify the test layers.</textarea>
         </div>
+        <label class="assistant-context-toggle" for="includeProjectContext">
+          <input type="checkbox" id="includeProjectContext" checked>
+          Use configured Project Context Pack
+        </label>
         <div class="assistant-row">
           <div class="field">
             <label for="contextType">Context Type</label>
             <select id="contextType">
+              <option value="application-context">Application Context</option>
               <option value="asyncapi">AsyncAPI</option>
               <option value="openapi">OpenAPI</option>
               <option value="event-catalog">Event Catalog</option>
@@ -1025,7 +1061,8 @@
         </div>
       </form>
       <div class="assistant-output">
-        <p class="assistant-copy" id="assistantReply">The assistant is restricted to assurance YAML, Kafka/event context, graph mappings, and test-layer strategy.</p>
+        <p class="assistant-copy" id="assistantReply">The assistant is restricted to event-driven QA/testing YAML, Kafka/event context, graph mappings, and test-layer strategy.</p>
+        <div class="assistant-context-list" id="assistantContextList"></div>
         <div class="assistant-warnings" id="assistantWarnings"></div>
         <pre class="assistant-pre" id="assistantYaml">app:
   assurance:
@@ -1275,6 +1312,7 @@
         name: document.getElementById('contextName').value.trim() || 'unnamed',
         content: contextContent
       }] : [],
+      includeProjectContext: document.getElementById('includeProjectContext').checked,
       model: document.getElementById('assistantModel').value.trim() || null,
       baseUrl: document.getElementById('assistantBaseUrl').value.trim() || null,
       apiKey: document.getElementById('assistantApiKey').value.trim() || null
@@ -1293,6 +1331,9 @@
 
   function renderAssistantResponse(response) {
     document.getElementById('assistantReply').textContent = response.reply || 'No reply returned.';
+    document.getElementById('assistantContextList').innerHTML = (response.acceptedContextSources || []).map((source) => (
+      `<span>${escapeHtml(source)}</span>`
+    )).join('');
     document.getElementById('assistantWarnings').innerHTML = (response.warnings || []).map((warning) => (
       `<div class="assistant-warning">${escapeHtml(warning)}</div>`
     )).join('');

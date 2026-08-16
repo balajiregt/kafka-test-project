@@ -61,7 +61,7 @@ That tracking record makes asynchronous behavior observable without pretending K
 
 The project goes one step beyond "assert that Kafka received a message."
 
-It builds an Event Assurance Graph from consumed events:
+It builds an Event Quality Testing Graph from consumed events:
 
 ```text
 User

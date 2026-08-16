@@ -1,10 +1,10 @@
-# Universal Event Assurance Framework
+# Universal Event Quality Testing Framework
 
-The assurance layer is designed to be reused outside the sample account application. The account APIs are only a reference producer of events.
+The quality testing layer is designed to be reused outside the sample account application. The account APIs are only a reference producer of events.
 
 Reusable pieces:
 
-- `com.balaji.kafkaeventlab.assurance`
+- `com.example.kafkaeventlab.assurance`
 - `GET /api/assurance/subjects/{subjectId}/journey`
 - `GET /api/assurance/subjects/{subjectId}/findings`
 - `GET /api/assurance/testing-recommendations`
@@ -81,7 +81,7 @@ GET /api/assurance/testing-recommendations
 GET /api/assurance/testing-recommendations?subjectId={subjectId}
 ```
 
-The advisor generates recommendations from the configured assurance model:
+The advisor generates recommendations from the configured event quality testing model:
 
 - Metadata rules become contract/schema recommendations.
 - Event presence rules become Kafka evidence capture recommendations.
@@ -92,11 +92,11 @@ The advisor generates recommendations from the configured assurance model:
 
 When `subjectId` is supplied, the recommendations include journey-aware status signals such as current rule status and metadata gap counts. This keeps the report dynamic without making CI depend on a live LLM call.
 
-AI is still useful, but it belongs earlier in the workflow: use the BYOK assistant to draft or review assurance YAML from project context, then let the deterministic advisor produce repeatable recommendations from that YAML and observed evidence.
+AI is still useful, but it belongs earlier in the workflow: use the BYOK assistant to draft or review event quality testing YAML from project context, then let the deterministic advisor produce repeatable recommendations from that YAML and observed evidence.
 
 ## Evidence Sources
 
-The assurance engine reads normalized event evidence through this interface:
+The quality testing engine reads normalized event evidence through this interface:
 
 ```java
 public interface EventEvidenceSource {
@@ -132,7 +132,7 @@ deploy app to test namespace
 run API or message-driven scenario
 collect event evidence from Kafka, logs, DB, or observability store
 normalize into EventEvidence
-run assurance graph and advisor
+run quality testing graph and advisor
 publish report as CI artifact
 fail pipeline on configured FAIL findings
 ```
@@ -140,18 +140,18 @@ fail pipeline on configured FAIL findings
 The important boundary is:
 
 ```text
-orchestration-specific collection -> EventEvidenceSource -> generic assurance engine
+orchestration-specific collection -> EventEvidenceSource -> generic quality testing engine
 ```
 
 Kubernetes, Helm, ArgoCD, Jenkins, GitHub Actions, or any other orchestration tool should only affect how evidence is collected. It should not affect how lifecycle rules are evaluated.
 
 ## Does The Current Setup Fit Big Orchestrations?
 
-Yes for the assurance core, with one important distinction.
+Yes for the quality testing core, with one important distinction.
 
 The current H2/JPA setup is a local evidence store. It is useful for developer laptops, Testcontainers, and CI jobs that want a simple database-backed report. It is not pretending to replace Kubernetes, service mesh, platform logs, managed Kafka, schema registry, or observability tooling.
 
-The scalable part is the contract between orchestration and assurance:
+The scalable part is the contract between orchestration and quality testing:
 
 ```text
 environment-specific collector -> normalized EventEvidence -> graph/advisor/report
@@ -177,8 +177,9 @@ So the answer is: the current sample setup is intentionally lightweight, but the
 
 ## AI Assistant Context Inputs
 
-The BYOK AI assistant helps users draft `app.assurance` YAML, and it is restricted to assurance-configuration help. It should ask for or accept these context inputs:
+The BYOK AI assistant helps users draft `app.assurance` YAML, and it is restricted to event-driven QA/testing configuration help. It should ask for or accept these context inputs:
 
+- Project context Markdown, such as `docs/event-quality-testing-context.md`, for domain vocabulary, business capabilities, lifecycles, ownership, and test-layer boundaries.
 - AsyncAPI, event catalog, or schema registry exports for Kafka event contracts.
 - OpenAPI or Swagger for command APIs and business operations.
 - Sample event payloads from lower environments.
@@ -187,11 +188,17 @@ The BYOK AI assistant helps users draft `app.assurance` YAML, and it is restrict
 - Existing test-layer strategy, including what belongs in API, Kafka, contract, and UI/e2e tests.
 - Known failure policies such as retry, DLQ, idempotency, duplicate handling, and ordering expectations.
 
-OpenAPI/Swagger alone is not enough for Kafka assurance. It helps infer commands and business operations, but AsyncAPI, event schemas, topic details, sample payloads, and consumer expectations are stronger inputs for Kafka rules.
+OpenAPI/Swagger alone is not enough for Kafka quality testing. It helps infer commands and business operations, but AsyncAPI, event schemas, topic details, sample payloads, and consumer expectations are stronger inputs for Kafka rules.
 
-The assistant should refuse unrelated requests and produce only framework artifacts such as YAML rules, metadata expectations, graph edge mappings, test recommendations, and review comments on supplied assurance configuration.
+The assistant should refuse unrelated requests and produce only framework artifacts such as YAML rules, metadata expectations, graph edge mappings, test recommendations, and review comments on supplied quality testing configuration.
 
-## Assurance Config Assistant
+Keep Markdown and YAML separate:
+
+- `docs/event-quality-testing-context.md` is the human/project knowledge pack.
+- `app.assurance` YAML is the executable contract used by the advisor.
+- The assistant reads the context pack to draft or review YAML, but the deterministic quality testing graph does not require live AI.
+
+## Event Quality Testing Config Assistant
 
 The project includes a scoped assistant endpoint:
 
@@ -210,7 +217,8 @@ Example request:
 
 ```json
 {
-  "message": "Create assurance YAML for these Kafka events and classify the test layers.",
+  "message": "Create event quality testing YAML for these Kafka events and classify the test layers.",
+  "includeProjectContext": true,
   "contextSources": [
     {
       "sourceType": "asyncapi",
@@ -230,6 +238,7 @@ app:
   assurance:
     assistant:
       allowed-context-types:
+        - application-context
         - asyncapi
         - openapi
         - swagger
@@ -240,11 +249,14 @@ app:
         - test-strategy
         - consumer-ownership
         - freeform
+      include-context-files-by-default: true
+      context-files:
+        - docs/event-quality-testing-context.md
 ```
 
 ## Evidence Playground
 
-The reference app prevents impossible business states through its command APIs. To test whether the assurance graph can interpret bad or incomplete event evidence, enable the generic playground endpoint only in local or protected lower environments:
+The reference app prevents impossible business states through its command APIs. To test whether the quality testing graph can interpret bad or incomplete event evidence, enable the generic playground endpoint only in local or protected lower environments:
 
 ```yaml
 app:

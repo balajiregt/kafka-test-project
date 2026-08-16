@@ -1,6 +1,6 @@
 # Account Profile and Authentication Event Lab
 
-An enterprise-shaped Spring Boot + Kafka sample plus a reusable, config-driven event assurance framework.
+An enterprise-shaped Spring Boot + Kafka sample plus a reusable, config-driven event quality testing framework.
 
 The app includes a small account profile and authentication service as a reference producer of events:
 
@@ -10,25 +10,26 @@ The app includes a small account profile and authentication service as a referen
 2. Each command persists the operational record in H2.
 3. The command emits an `AccountEvent` to Kafka topic `account.events.v1`.
 4. A Spring Kafka consumer tracks consumed events with topic, partition, offset, correlation id, and payload JSON.
-5. The Event Assurance Graph turns consumed events into a journey graph and deterministic advisor findings.
+5. The Event Quality Testing Graph turns consumed events into a journey graph and deterministic advisor findings.
 6. Tests separate API integration concerns from Kafka/event-flow concerns.
 
 ## What Makes This Project Different
 
-Kafka validation is not just message assertion; it is journey assurance.
+Kafka validation is not just message assertion; it is journey-level QA.
 
 This project adds a self-contained event intelligence layer:
 
-- **Event Assurance Graph**: builds graph nodes and edges from consumed Kafka events.
+- **Event Quality Testing Graph**: builds graph nodes and edges from consumed Kafka events.
 - **Config-driven advisor**: applies deterministic rules from `app.assurance`, so teams can change lifecycle assertions without Java edits.
 - **Testing recommendations**: reads configured recommendations for API integration, Kafka integration, contract/schema, and UI/e2e tests.
 - **Interactive report metrics**: exposes metadata completeness, offset span, consumer lag, journey duration, and graph hotspots.
-- **Assurance Config Assistant**: creates or reviews starter `app.assurance` YAML from supplied context, with deterministic local mode and optional request-scoped BYOK AI mode.
+- **Project Context Pack**: stores application vocabulary, lifecycles, ownership, and test boundaries in `docs/event-quality-testing-context.md`.
+- **Event Quality Testing Config Assistant**: creates or reviews starter `app.assurance` YAML from the context pack plus supplied artifacts, with deterministic local mode and optional request-scoped BYOK AI mode.
 
 No live AI key, vector database, or graph database is required for the default flow. The "agentic" value starts with deterministic reasoning over event evidence; BYOK AI is optional and scoped to assurance configuration help.
 
-The account domain is optional sample material. The reusable framework lives in `com.balaji.kafkaeventlab.assurance` and is configured through `app.assurance` in `application.yml`.
-For larger environments, the assurance engine reads normalized evidence through `EventEvidenceSource`; JPA/H2 is just the default local source.
+The account domain is optional sample material. The reusable framework lives in `com.example.kafkaeventlab.assurance` and is configured through `app.assurance` in `application.yml`.
+For larger environments, the quality testing engine reads normalized evidence through `EventEvidenceSource`; JPA/H2 is just the default local source.
 
 ## Tech Stack
 
@@ -156,7 +157,7 @@ jdbc:h2:mem:kafkaeventlab
 ## Project Structure
 
 ```text
-src/main/java/com/balaji/kafkaeventlab
+src/main/java/com/example/kafkaeventlab
 ├── config
 │   └── KafkaTopicConfig
 ├── account
@@ -177,6 +178,8 @@ src/main/java/com/balaji/kafkaeventlab
 See [docs/account-testing-strategy.md](docs/account-testing-strategy.md).
 
 For the reusable framework configuration model, see [docs/universal-event-assurance-framework.md](docs/universal-event-assurance-framework.md).
+
+Before using the assistant on a real project, fill in [docs/event-quality-testing-context.md](docs/event-quality-testing-context.md). The assistant can include that committed Markdown file automatically, while the advisor still runs from deterministic YAML and observed evidence.
 
 For the flow diagrams and visual explanation, see [docs/event-assurance-visual-story.md](docs/event-assurance-visual-story.md).
 

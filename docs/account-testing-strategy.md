@@ -63,7 +63,7 @@ Do not require a Kafka broker for most API tests. If API tests depend on Kafka t
 
 Kafka validation is not just message assertion; it is journey assurance.
 
-This project adds an `assurance` module that reads normalized `EventEvidence` records through `EventEvidenceSource` and builds an Event Assurance Graph. The graph connects subjects, aggregates, configured domain relationships, and events. A deterministic advisor then evaluates configured lifecycle and metadata rules.
+This project adds an `assurance` module that reads normalized `EventEvidence` records through `EventEvidenceSource` and builds an Event Quality Testing Graph. The graph connects subjects, aggregates, configured domain relationships, and events. A deterministic advisor then evaluates configured lifecycle and metadata rules.
 
 Use the assurance endpoints to answer higher-value test questions:
 
