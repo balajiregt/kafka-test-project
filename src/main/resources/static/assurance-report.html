@@ -654,6 +654,45 @@
       overflow-wrap: anywhere;
     }
 
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .scenario-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid #edf0f5;
+      border-radius: 8px;
+      background: #fff;
+      min-width: 0;
+    }
+
+    .scenario-card h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .scenario-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .scenario-card button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 750;
+    }
+
     .empty {
       color: var(--muted);
       padding: 20px;
@@ -671,6 +710,7 @@
       .grid,
       .recommendations,
       .framework-grid,
+      .scenario-grid,
       .assistant-grid {
         grid-template-columns: 1fr;
       }
@@ -848,6 +888,35 @@
 
   <section class="panel" style="margin-top:16px">
     <div class="panel-header">
+      <h2>Demo Scenarios</h2>
+      <span class="pill" id="scenarioStatus">negative evidence</span>
+    </div>
+    <div class="scenario-grid">
+      <article class="scenario-card">
+        <h3>Incorrect Sequence</h3>
+        <p>SIGN_IN_SUCCEEDED appears before any CREDENTIAL_REGISTERED event.</p>
+        <button type="button" data-scenario="incorrect-sign-in-sequence">Load FAIL</button>
+      </article>
+      <article class="scenario-card">
+        <h3>Missing Metadata</h3>
+        <p>Required Kafka evidence fields such as correlation id, schema version, or offset are missing.</p>
+        <button type="button" data-scenario="missing-metadata">Load FAIL</button>
+      </article>
+      <article class="scenario-card">
+        <h3>Reset Gap</h3>
+        <p>PASSWORD_RESET_COMPLETED appears without PASSWORD_RESET_REQUESTED first.</p>
+        <button type="button" data-scenario="reset-completed-without-request">Load FAIL</button>
+      </article>
+      <article class="scenario-card">
+        <h3>Failed Sign-In</h3>
+        <p>SIGN_IN_FAILED appears and should be interpreted as an advisor warning.</p>
+        <button type="button" data-scenario="failed-sign-in-warning">Load WARN</button>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:16px">
+    <div class="panel-header">
       <h2>Assurance Config Assistant</h2>
       <span class="pill">BYOK optional</span>
     </div>
@@ -951,6 +1020,9 @@
   document.getElementById('clearAssistantKey').addEventListener('click', () => {
     document.getElementById('assistantApiKey').value = '';
     setAssistantStatus('Key cleared');
+  });
+  document.querySelectorAll('[data-scenario]').forEach((button) => {
+    button.addEventListener('click', () => createDemoScenario(button.dataset.scenario));
   });
 
   if (input.value) {
@@ -1059,6 +1131,20 @@
       `<div class="assistant-warning">${escapeHtml(warning)}</div>`
     )).join('');
     document.getElementById('assistantYaml').textContent = response.suggestedYaml || response.reply || '';
+  }
+
+  async function createDemoScenario(scenario) {
+    const status = document.getElementById('scenarioStatus');
+    status.textContent = 'creating';
+    try {
+      const response = await postJson(`/api/assurance/demo-scenarios/${scenario}`, {});
+      input.value = response.subjectId;
+      await loadReport(response.subjectId);
+      status.textContent = response.scenario;
+    } catch (error) {
+      console.error(error);
+      status.textContent = error.message;
+    }
   }
 
   function renderEmpty() {

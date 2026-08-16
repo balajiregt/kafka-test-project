@@ -12,6 +12,7 @@ public class AssuranceProperties {
     private MetadataRule metadataRule = new MetadataRule();
     private Evidence evidence = new Evidence();
     private Assistant assistant = new Assistant();
+    private DemoScenarios demoScenarios = new DemoScenarios();
     private List<OrderingRule> orderingRules = new ArrayList<>();
     private List<EventFlagRule> eventFlagRules = new ArrayList<>();
     private List<GraphEdgeRule> graphEdgeRules = new ArrayList<>();
@@ -47,6 +48,14 @@ public class AssuranceProperties {
 
     public void setAssistant(Assistant assistant) {
         this.assistant = assistant;
+    }
+
+    public DemoScenarios getDemoScenarios() {
+        return demoScenarios;
+    }
+
+    public void setDemoScenarios(DemoScenarios demoScenarios) {
+        this.demoScenarios = demoScenarios;
     }
 
     public List<OrderingRule> getOrderingRules() {
@@ -251,6 +260,18 @@ public class AssuranceProperties {
 
         public void setAllowedContextTypes(List<String> allowedContextTypes) {
             this.allowedContextTypes = allowedContextTypes;
+        }
+    }
+
+    public static class DemoScenarios {
+        private boolean enabled = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 

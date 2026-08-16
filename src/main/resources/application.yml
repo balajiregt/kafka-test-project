@@ -38,6 +38,8 @@ app:
   assurance:
     evidence:
       source-type: jpa
+    demo-scenarios:
+      enabled: true
     assistant:
       enabled: true
       api-key-env: OPENAI_API_KEY

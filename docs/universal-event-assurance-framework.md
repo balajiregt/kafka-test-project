@@ -220,6 +220,32 @@ app:
         - freeform
 ```
 
+## Negative Scenario Demo Evidence
+
+The reference app prevents impossible business states through its command APIs. To test whether the assurance graph can interpret bad Kafka evidence, the lab includes controlled demo evidence endpoints:
+
+```text
+GET  /api/assurance/demo-scenarios
+POST /api/assurance/demo-scenarios/{scenario}
+```
+
+Available scenarios:
+
+- `incorrect-sign-in-sequence`: emits `SIGN_IN_SUCCEEDED` without prior `CREDENTIAL_REGISTERED`; expected advisor finding is `FAIL`.
+- `missing-metadata`: emits an event without required metadata such as correlation id, schema version, and offset; expected advisor finding is `FAIL`.
+- `reset-completed-without-request`: emits `PASSWORD_RESET_COMPLETED` without prior `PASSWORD_RESET_REQUESTED`; expected advisor finding is `FAIL`.
+- `failed-sign-in-warning`: emits `SIGN_IN_FAILED`; expected advisor finding is `WARN`.
+
+Each call creates a new subject id and returns a `reportPath`. Open that report to inspect:
+
+- graph nodes and connected edges
+- ordered event timeline
+- advisor status bars
+- exact evidence event ids behind each finding
+- metadata completeness metrics
+
+These endpoints are for lab/demo use. Production-style projects should usually generate negative evidence through test fixtures, CI artifacts, or dedicated lower-environment collectors rather than exposing write endpoints publicly.
+
 ## How To Use In Another Project
 
 1. Keep or copy the `assurance` package.

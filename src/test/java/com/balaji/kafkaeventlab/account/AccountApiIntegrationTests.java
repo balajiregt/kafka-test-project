@@ -198,7 +198,30 @@ class AccountApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Event Assurance Report")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Metadata Complete")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Click a graph node")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Click a graph node")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Assurance Config Assistant")));
+    }
+
+    @Test
+    void createsNegativeAssuranceDemoScenarios() throws Exception {
+        mockMvc.perform(post("/api/assurance/demo-scenarios/incorrect-sign-in-sequence"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.totalEvents").value(2))
+                .andExpect(jsonPath("$.findings[?(@.ruleId == 'auth.credential-before-successful-sign-in' && @.status == 'FAIL')]").isNotEmpty())
+                .andExpect(jsonPath("$.reportPath").value(org.hamcrest.Matchers.startsWith("/assurance-report.html?subjectId=")));
+
+        mockMvc.perform(post("/api/assurance/demo-scenarios/missing-metadata"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.graphMetrics.missingMetadataEvents").value(1))
+                .andExpect(jsonPath("$.findings[?(@.ruleId == 'metadata.required-fields' && @.status == 'FAIL')]").isNotEmpty());
+
+        mockMvc.perform(post("/api/assurance/demo-scenarios/reset-completed-without-request"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.findings[?(@.ruleId == 'reset.request-before-completion' && @.status == 'FAIL')]").isNotEmpty());
+
+        mockMvc.perform(post("/api/assurance/demo-scenarios/failed-sign-in-warning"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.findings[?(@.ruleId == 'auth.failed-sign-ins-explained' && @.status == 'WARN')]").isNotEmpty());
     }
 
     private ResultActions performAsyncPost(String url, String json) throws Exception {

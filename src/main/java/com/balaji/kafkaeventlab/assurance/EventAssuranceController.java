@@ -17,15 +17,18 @@ public class EventAssuranceController {
     private final EventAssuranceGraphService graphService;
     private final EventAssuranceAdvisor advisor;
     private final AssuranceAssistantService assistantService;
+    private final AssuranceDemoScenarioService demoScenarioService;
 
     public EventAssuranceController(
             EventAssuranceGraphService graphService,
             EventAssuranceAdvisor advisor,
-            AssuranceAssistantService assistantService
+            AssuranceAssistantService assistantService,
+            AssuranceDemoScenarioService demoScenarioService
     ) {
         this.graphService = graphService;
         this.advisor = advisor;
         this.assistantService = assistantService;
+        this.demoScenarioService = demoScenarioService;
     }
 
     @GetMapping("/subjects/{subjectId}/journey")
@@ -46,5 +49,15 @@ public class EventAssuranceController {
     @PostMapping("/config-assistant")
     public AssuranceAssistantResponse configAssistant(@RequestBody AssuranceAssistantRequest request) {
         return assistantService.advise(request);
+    }
+
+    @GetMapping("/demo-scenarios")
+    public List<String> demoScenarios() {
+        return demoScenarioService.scenarios();
+    }
+
+    @PostMapping("/demo-scenarios/{scenario}")
+    public AssuranceDemoScenarioResponse createDemoScenario(@PathVariable String scenario) {
+        return demoScenarioService.create(scenario);
     }
 }

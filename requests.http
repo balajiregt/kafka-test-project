@@ -93,6 +93,21 @@ GET http://localhost:8080/api/assurance/subjects/REPLACE_WITH_USER_ID/findings
 ### Testing recommendations by layer
 GET http://localhost:8080/api/assurance/testing-recommendations
 
+### List assurance demo scenarios
+GET http://localhost:8080/api/assurance/demo-scenarios
+
+### Negative scenario - successful sign-in without credential registered first
+POST http://localhost:8080/api/assurance/demo-scenarios/incorrect-sign-in-sequence
+
+### Negative scenario - event missing required metadata
+POST http://localhost:8080/api/assurance/demo-scenarios/missing-metadata
+
+### Negative scenario - password reset completed without request first
+POST http://localhost:8080/api/assurance/demo-scenarios/reset-completed-without-request
+
+### Warning scenario - failed sign-in is present
+POST http://localhost:8080/api/assurance/demo-scenarios/failed-sign-in-warning
+
 ### Assurance config assistant - local deterministic template
 POST http://localhost:8080/api/assurance/config-assistant
 Content-Type: application/json
