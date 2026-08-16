@@ -20,7 +20,7 @@ The framework should not know business lifecycle rules in Java. A team cloning t
 - Event ordering rules.
 - Event flag rules.
 - Graph relationship mappings.
-- Testing recommendations.
+- Optional curated testing recommendations for project-specific guidance.
 
 Example:
 
@@ -71,6 +71,28 @@ The graph service always creates framework edges:
 - `FOLLOWS_EVENT`
 
 Domain-specific edges come from `app.assurance.graph-edge-rules`.
+
+## Dynamic Testing Recommendations
+
+`GET /api/assurance/testing-recommendations` has two modes:
+
+```text
+GET /api/assurance/testing-recommendations
+GET /api/assurance/testing-recommendations?subjectId={subjectId}
+```
+
+The advisor generates recommendations from the configured assurance model:
+
+- Metadata rules become contract/schema recommendations.
+- Event presence rules become Kafka evidence capture recommendations.
+- Ordering rules become lifecycle/API-or-Kafka layer recommendations.
+- Event flag rules become warning/failure behavior recommendations.
+- Graph edge mappings become graph validation recommendations.
+- YAML `testing-recommendations` remain as curated additions.
+
+When `subjectId` is supplied, the recommendations include journey-aware status signals such as current rule status and metadata gap counts. This keeps the report dynamic without making CI depend on a live LLM call.
+
+AI is still useful, but it belongs earlier in the workflow: use the BYOK assistant to draft or review assurance YAML from project context, then let the deterministic advisor produce repeatable recommendations from that YAML and observed evidence.
 
 ## Evidence Sources
 

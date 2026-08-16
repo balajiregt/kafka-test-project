@@ -191,10 +191,14 @@ class AccountApiIntegrationTests {
                 .andExpect(jsonPath("$[3].status").value("PASS"))
                 .andExpect(jsonPath("$[?(@.status == 'FAIL')]").isEmpty());
 
-        mockMvc.perform(get("/api/assurance/testing-recommendations"))
+        mockMvc.perform(get("/api/assurance/testing-recommendations")
+                        .param("subjectId", user.getUserId().toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].testLayer").value("API integration"))
-                .andExpect(jsonPath("$[?(@.testLayer == 'Kafka integration')]").isNotEmpty());
+                .andExpect(jsonPath("$[0].capability").value("Consumed event evidence capture"))
+                .andExpect(jsonPath("$[0].testLayer").value("Kafka integration"))
+                .andExpect(jsonPath("$[?(@.capability == 'Lifecycle order: CREDENTIAL_REGISTERED before SIGN_IN_SUCCEEDED')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.whyHere == 'Generated from ordering rule auth.credential-before-successful-sign-in; current journey status is PASS.')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.testLayer == 'Contract/schema')]").isNotEmpty());
 
         mockMvc.perform(get("/assurance-report.html").param("subjectId", user.getUserId().toString()))
                 .andExpect(status().isOk())

@@ -1181,7 +1181,7 @@
       const [journey, findings, recommendations] = await Promise.all([
         fetchJson(`/api/assurance/subjects/${subjectId}/journey`),
         fetchJson(`/api/assurance/subjects/${subjectId}/findings`),
-        fetchJson('/api/assurance/testing-recommendations')
+        fetchJson(`/api/assurance/testing-recommendations?subjectId=${encodeURIComponent(subjectId)}`)
       ]);
       state.journey = journey;
       state.findings = findings;

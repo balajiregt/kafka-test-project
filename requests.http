@@ -93,6 +93,9 @@ GET http://localhost:8080/api/assurance/subjects/REPLACE_WITH_USER_ID/findings
 ### Testing recommendations by layer
 GET http://localhost:8080/api/assurance/testing-recommendations
 
+### Testing recommendations for one loaded journey
+GET http://localhost:8080/api/assurance/testing-recommendations?subjectId=REPLACE_WITH_USER_ID
+
 ### Evidence playground - sequence gap
 # Requires app.assurance.playground.enabled=true
 POST http://localhost:8080/api/assurance/playground/evidence

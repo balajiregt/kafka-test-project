@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,14 +46,164 @@ public class EventAssuranceAdvisor {
     }
 
     public List<TestingRecommendation> testingRecommendations() {
-        return assuranceProperties.getTestingRecommendations().stream()
+        return testingRecommendations(null);
+    }
+
+    public List<TestingRecommendation> testingRecommendations(AssuranceJourneyResponse journey) {
+        List<TestingRecommendation> recommendations = new ArrayList<>();
+        List<AssuranceFinding> journeyFindings = journey == null ? List.of() : findings(journey);
+
+        if (assuranceProperties.getEventPresenceRule().isEnabled()) {
+            recommendations.add(eventEvidenceRecommendation(journey));
+        }
+        if (assuranceProperties.getMetadataRule().isEnabled()) {
+            recommendations.add(metadataRecommendation(journey, journeyFindings));
+        }
+        assuranceProperties.getOrderingRules().stream()
+                .filter(this::isUsableOrderingRule)
+                .map(rule -> orderingRecommendation(rule, journeyFindings))
+                .forEach(recommendations::add);
+        assuranceProperties.getEventFlagRules().stream()
+                .filter(this::isUsableEventFlagRule)
+                .map(rule -> eventFlagRecommendation(rule, journeyFindings))
+                .forEach(recommendations::add);
+        assuranceProperties.getGraphEdgeRules().stream()
+                .filter(rule -> hasText(rule.getWhenAggregateType()) && hasText(rule.getEdgeType()))
+                .map(this::graphRecommendation)
+                .forEach(recommendations::add);
+        assuranceProperties.getTestingRecommendations().stream()
                 .map(recommendation -> new TestingRecommendation(
                         recommendation.getCapability(),
                         recommendation.getTestLayer(),
                         recommendation.getWhyHere(),
                         recommendation.getExampleAssertions()
                 ))
+                .forEach(recommendations::add);
+
+        return uniqueRecommendations(recommendations)
+                .values()
+                .stream()
                 .toList();
+    }
+
+    private LinkedHashMap<String, TestingRecommendation> uniqueRecommendations(
+            List<TestingRecommendation> recommendations
+    ) {
+        LinkedHashMap<String, TestingRecommendation> unique = new LinkedHashMap<>();
+        recommendations.forEach(recommendation -> unique.putIfAbsent(recommendationKey(recommendation), recommendation));
+        return unique;
+    }
+
+    private String recommendationKey(TestingRecommendation recommendation) {
+        return recommendation.testLayer() + "|" + recommendation.capability();
+    }
+
+    private TestingRecommendation eventEvidenceRecommendation(AssuranceJourneyResponse journey) {
+        AssuranceProperties.EventPresenceRule rule = assuranceProperties.getEventPresenceRule();
+        int eventCount = journey == null ? 0 : journey.orderedEvents().size();
+        String whyHere = journey == null
+                ? "Generated from the event presence rule; prove the configured evidence collector can observe consumed events."
+                : "Generated from the event presence rule; this journey currently has " + eventCount + " consumed event(s).";
+        return new TestingRecommendation(
+                "Consumed event evidence capture",
+                rule.getRecommendedTestLayer(),
+                whyHere,
+                List.of(
+                        "After a business operation, the evidence source records at least one consumed event for the subject.",
+                        "Recorded evidence includes topic, partition, offset, timestamps, and payload JSON.",
+                        "The report can rebuild an ordered journey from the collected evidence."
+                )
+        );
+    }
+
+    private TestingRecommendation metadataRecommendation(
+            AssuranceJourneyResponse journey,
+            List<AssuranceFinding> journeyFindings
+    ) {
+        AssuranceProperties.MetadataRule rule = assuranceProperties.getMetadataRule();
+        String requiredFields = String.join(", ", rule.getRequiredFields());
+        String status = statusFor(rule.getRuleId(), journeyFindings);
+        String whyHere = journey == null
+                ? "Generated from metadata rule " + rule.getRuleId() + "; required fields are " + requiredFields + "."
+                : "Generated from metadata rule " + rule.getRuleId()
+                + "; current journey status is " + status
+                + " with " + missingMetadataGaps(journey) + " metadata gap(s).";
+        return new TestingRecommendation(
+                "Event metadata contract: " + requiredFields,
+                rule.getRecommendedTestLayer(),
+                whyHere,
+                List.of(
+                        "Validate required metadata fields on every produced event: " + requiredFields + ".",
+                        "Reject or flag events with blank correlation id, missing schema version, or missing consumed offset.",
+                        "Run schema/contract checks before UI/e2e flows depend on these events."
+                )
+        );
+    }
+
+    private TestingRecommendation orderingRecommendation(
+            AssuranceProperties.OrderingRule rule,
+            List<AssuranceFinding> journeyFindings
+    ) {
+        String status = statusFor(rule.getRuleId(), journeyFindings);
+        return new TestingRecommendation(
+                "Lifecycle order: " + rule.getRequiredPriorEventType() + " before " + rule.getTriggerEventType(),
+                rule.getRecommendedTestLayer(),
+                "Generated from ordering rule " + rule.getRuleId() + currentStatus(status) + ".",
+                List.of(
+                        "Positive path: " + rule.getRequiredPriorEventType() + " appears before " + rule.getTriggerEventType() + " for the same subject.",
+                        "Negative path: " + rule.getTriggerEventType() + " without prior " + rule.getRequiredPriorEventType() + " is flagged.",
+                        "Keep this below UI/e2e unless visible browser behavior is the thing under test."
+                )
+        );
+    }
+
+    private TestingRecommendation eventFlagRecommendation(
+            AssuranceProperties.EventFlagRule rule,
+            List<AssuranceFinding> journeyFindings
+    ) {
+        String status = statusFor(rule.getRuleId(), journeyFindings);
+        return new TestingRecommendation(
+                "Flagged event behavior: " + rule.getEventType(),
+                rule.getRecommendedTestLayer(),
+                "Generated from event flag rule " + rule.getRuleId() + currentStatus(status) + ".",
+                List.of(
+                        "When " + rule.getEventType() + " appears, assert the domain reason and stored state.",
+                        "Classify expected flagged events as warnings when they are valid business outcomes.",
+                        "Use UI/e2e only for the user-visible message or recovery journey."
+                )
+        );
+    }
+
+    private TestingRecommendation graphRecommendation(AssuranceProperties.GraphEdgeRule rule) {
+        return new TestingRecommendation(
+                "Graph relationship: " + rule.getWhenAggregateType() + " creates " + rule.getEdgeType(),
+                "Kafka integration",
+                "Generated from graph edge mapping " + rule.getWhenAggregateType() + " -> " + rule.getEdgeType() + ".",
+                List.of(
+                        "Consumed " + rule.getWhenAggregateType() + " evidence creates a " + rule.getEdgeType() + " edge in the journey graph.",
+                        "The graph highlights connected subject, aggregate, and event nodes for this relationship.",
+                        "Validate relationship mapping with focused graph/advisor tests, not browser-only checks."
+                )
+        );
+    }
+
+    private String statusFor(String ruleId, List<AssuranceFinding> findings) {
+        return findings.stream()
+                .filter(finding -> ruleId.equals(finding.ruleId()))
+                .map(AssuranceFinding::status)
+                .findFirst()
+                .orElse("not evaluated");
+    }
+
+    private String currentStatus(String status) {
+        return "not evaluated".equals(status) ? "" : "; current journey status is " + status;
+    }
+
+    private int missingMetadataGaps(AssuranceJourneyResponse journey) {
+        if (journey.summary() == null || journey.summary().graphMetrics() == null) {
+            return 0;
+        }
+        return journey.summary().graphMetrics().missingMetadataEvents();
     }
 
     private AssuranceFinding eventsPresent(
