@@ -1,9 +1,12 @@
 services:
   kafka:
-    image: apache/kafka:4.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile.kafka
+    image: agentic-workspace-kafka:4.4.0-secure-20261031
     container_name: kafka-event-lab-broker
     ports:
-      - "29092:29092"
+      - "127.0.0.1:29092:29092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -23,16 +26,6 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-event-lab-ui
-    ports:
-      - "8085:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local-kafka
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-    depends_on:
-      - kafka
 
 volumes:
   kafka-data:

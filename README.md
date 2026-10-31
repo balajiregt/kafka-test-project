@@ -44,7 +44,7 @@ For larger environments, the quality testing engine reads normalized evidence th
 
 ## Quick Start
 
-Start Kafka and Kafka UI:
+Start Kafka:
 
 ```bash
 docker compose up -d
@@ -136,11 +136,7 @@ Open the report view:
 http://localhost:8080/assurance-report.html?subjectId=<subjectId>
 ```
 
-Kafka UI:
-
-```text
-http://localhost:8085
-```
+The optional Kafka UI service has been removed due to unresolved upstream vulnerabilities.
 
 H2 console:
 

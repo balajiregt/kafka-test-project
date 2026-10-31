@@ -1,4 +1,5 @@
 server:
+  address: 127.0.0.1
   port: 8080
 
 spring:
@@ -43,7 +44,6 @@ app:
       default-topic: playground.assurance.events.v1
     assistant:
       enabled: true
-      api-key-env: OPENAI_API_KEY
       default-base-url: https://api.openai.com/v1
       default-model:
       max-context-sources: 6
