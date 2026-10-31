@@ -85,7 +85,9 @@ public class AssuranceAssistantService {
             );
         }
 
-        String apiKey = firstText(request == null ? null : request.apiKey(), environmentKey(assistant));
+        // This local, unauthenticated lab endpoint is strictly request-scoped BYOK.
+        // It must never lend a process/environment credential to a caller.
+        String apiKey = clean(request == null ? null : request.apiKey());
         String model = firstText(request == null ? null : request.model(), assistant.getDefaultModel());
         if (hasText(apiKey) && hasText(model)) {
             return aiResponse(request, contextSources, warnings, acceptedNames, apiKey, model, assistant);
@@ -316,18 +318,34 @@ public class AssuranceAssistantService {
         return prompt.toString();
     }
 
-    private URI responseUri(String baseUrl, List<String> warnings) {
+    URI responseUri(String baseUrl, List<String> warnings) {
         if (!hasText(baseUrl)) {
             warnings.add("No base URL supplied for live AI.");
             return null;
         }
-        String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        String uri = normalized.endsWith("/responses") ? normalized : normalized + "/responses";
-        if (!uri.startsWith("https://")) {
-            warnings.add("Live AI base URL must use https, so deterministic local mode was used.");
+        try {
+            URI configured = new URI(assuranceProperties.getAssistant().getDefaultBaseUrl());
+            URI requested = new URI(baseUrl);
+            // Only the configured provider endpoint may receive a submitted key/context.
+            // Exact endpoint comparison also excludes alternate ports, userinfo,
+            // fragments, queries, traversal and request-selected internal addresses.
+            if (!"https".equals(configured.getScheme()) || configured.getHost() == null
+                    || configured.getUserInfo() != null || configured.getQuery() != null
+                    || configured.getFragment() != null
+                    || !providerEndpoint(configured).equals(providerEndpoint(requested))) {
+                warnings.add("Live AI must use the configured HTTPS provider endpoint; local mode was used.");
+                return null;
+            }
+            return providerEndpoint(configured);
+        } catch (java.net.URISyntaxException | IllegalArgumentException exception) {
+            warnings.add("Invalid live AI provider endpoint; local mode was used.");
             return null;
         }
-        return URI.create(uri);
+    }
+
+    private URI providerEndpoint(URI base) {
+        String text = base.toString().replaceAll("/+$", "");
+        return URI.create(text.endsWith("/responses") ? text : text + "/responses");
     }
 
     private String extractResponseText(String raw) throws JsonProcessingException {
@@ -421,13 +439,6 @@ public class AssuranceAssistantService {
                           - Topic, partition, offset, correlation id, and schema version are captured.
                           - Events for the same subject keep expected ordering.
                 """.formatted(prefix, prefix);
-    }
-
-    private String environmentKey(AssuranceProperties.Assistant assistant) {
-        if (!hasText(assistant.getApiKeyEnv())) {
-            return "";
-        }
-        return System.getenv(assistant.getApiKeyEnv());
     }
 
     private AssuranceAssistantResponse response(

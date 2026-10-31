@@ -1,0 +1,9 @@
+FROM apache/kafka:4.4.0@sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f
+USER root
+RUN apk upgrade --no-cache brotli-libs libexpat musl musl-utils
+# Replace both vulnerable compression libraries; verify downloads before adding them.
+ADD --checksum=sha256:c75bfbc6980e8b90ee76c75ec5b67058b6b9bfa1e19af6a3cf75dccde533e750 https://repo.maven.apache.org/maven2/at/yawk/lz4/lz4-java/1.12.1/lz4-java-1.12.1.jar /opt/kafka/libs/lz4-java-1.12.1.jar
+ADD --checksum=sha256:1c03ce77b3f2e926c25a952612e372404d80bc88c6c8052bede964804fabd732 https://repo.maven.apache.org/maven2/org/xerial/snappy/snappy-java/1.1.10.12/snappy-java-1.1.10.12.jar /opt/kafka/libs/snappy-java-1.1.10.12.jar
+RUN rm /opt/kafka/libs/lz4-java-1.11.2.jar /opt/kafka/libs/snappy-java-1.1.10.7.jar \
+    && chmod 644 /opt/kafka/libs/lz4-java-1.12.1.jar /opt/kafka/libs/snappy-java-1.1.10.12.jar
+USER appuser

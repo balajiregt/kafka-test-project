@@ -32,7 +32,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AccountKafkaIntegrationTests {
 
     @Container
-    static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+    // Build with `docker compose build kafka` before Docker-enabled tests.
+    static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("agentic-workspace-kafka:4.4.0-secure-20261031")
+            .asCompatibleSubstituteFor("apache/kafka"));
 
     @DynamicPropertySource
     static void kafkaProperties(DynamicPropertyRegistry registry) {

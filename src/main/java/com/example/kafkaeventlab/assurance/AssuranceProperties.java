@@ -188,7 +188,6 @@ public class AssuranceProperties {
 
     public static class Assistant {
         private boolean enabled = true;
-        private String apiKeyEnv = "OPENAI_API_KEY";
         private String defaultBaseUrl = "https://api.openai.com/v1";
         private String defaultModel = "";
         private int maxContextSources = 6;
@@ -215,14 +214,6 @@ public class AssuranceProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
-        }
-
-        public String getApiKeyEnv() {
-            return apiKeyEnv;
-        }
-
-        public void setApiKeyEnv(String apiKeyEnv) {
-            this.apiKeyEnv = apiKeyEnv;
         }
 
         public String getDefaultBaseUrl() {

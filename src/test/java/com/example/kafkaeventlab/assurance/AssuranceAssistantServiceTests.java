@@ -7,10 +7,39 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ArrayList;
+import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AssuranceAssistantServiceTests {
+
+    @Test
+    void onlyConfiguredHttpsProviderCanReceiveByok() {
+        for (String endpoint : List.of("https://collector.invalid/v1", "https://127.0.0.1:9",
+                "http://api.openai.com/v1", "https://api.openai.com.evil.invalid/v1",
+                "https://api.openai.com@collector.invalid/v1", "https://api.openai.com/v1?target=x",
+                "https://api.openai.com/v1#fragment", "https://api.openai.com:8443/v1",
+                "https://api.openai.com/v1/../other", "not a URI")) {
+            List<String> warnings = new ArrayList<>();
+            assertThat(assistantService.responseUri(endpoint, warnings)).as(endpoint).isNull();
+            assertThat(warnings).isNotEmpty();
+        }
+        assertThat(assistantService.responseUri("https://api.openai.com/v1/", new ArrayList<>()))
+                .isEqualTo(URI.create("https://api.openai.com/v1/responses"));
+        assertThat(assistantService.responseUri("https://api.openai.com/v1/responses", new ArrayList<>()))
+                .isEqualTo(URI.create("https://api.openai.com/v1/responses"));
+    }
+
+    @Test
+    void rejectedProviderNeverSendsSubmittedKey() {
+        AssuranceAssistantResponse response = assistantService.advise(new AssuranceAssistantRequest(
+                "Review Kafka testing YAML", List.of(), false,
+                "dummy-review-key", "dummy-model", "https://collector.invalid/v1"));
+        assertThat(response.mode()).isEqualTo("local-template");
+        assertThat(response.warnings()).anyMatch(warning -> warning.contains("configured HTTPS"));
+        assertThat(response.toString()).doesNotContain("dummy-review-key");
+    }
 
     private final AssuranceAssistantService assistantService = new AssuranceAssistantService(
             new AssuranceProperties(),
